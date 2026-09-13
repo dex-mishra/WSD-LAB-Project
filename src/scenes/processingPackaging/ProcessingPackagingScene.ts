@@ -4,7 +4,7 @@ import type { SceneKey } from "../../app/palette";
 import { PALETTE } from "../../app/palette";
 import { box, ground, label, floorDecal, makeTextTexture } from "../../app/builders";
 import { makeInteractable } from "../../interaction/Interactable";
-import type { EngineSnapshot } from "../../simulation/ScenarioEngine";
+import type { EngineSnapshot, ScenarioEngine } from "../../simulation/ScenarioEngine";
 
 /**
  * Environment 2: Processing and packaging unit.
@@ -20,6 +20,11 @@ export class ProcessingPackagingScene extends SceneModule {
   private flowArrows = new THREE.Group();
   private crossedArrows = new THREE.Group();
   private beltSpeed = 0.6;
+
+  constructor(engine: ScenarioEngine) {
+    super(engine);
+    this.init();
+  }
 
   protected build(): void {
     // Factory floor
@@ -125,17 +130,32 @@ export class ProcessingPackagingScene extends SceneModule {
     this.group.add(this.flowArrows);
     this.group.add(this.crossedArrows);
 
-    const title = label("PROCESSING & PACKAGING", 6, { fontSize: 52 });
-    title.position.set(0, 5, -13.7);
+    const title = label("PROCESSING & PACKAGING", 6.5, {
+      fontSize: 48,
+      width: 1024,
+      height: 220,
+    });
+    title.position.set(0, 5.4, -13.8);
     this.group.add(title);
 
-    this.bottleneckLabel = label("BOTTLENECK: --", 3, {
-      bg: "rgba(178,58,43,0.9)",
-      fontSize: 56,
+    // Overhead gantry above processing / bottleneck station (x = -2.5, left side)
+    const gantryL = box(0.08, 3.2, 0.08, 0x37485a);
+    gantryL.position.set(-4.2, 1.6, 2);
+    this.group.add(gantryL);
+    const gantryR = box(0.08, 3.2, 0.08, 0x37485a);
+    gantryR.position.set(-0.8, 1.6, 2);
+    this.group.add(gantryR);
+    const gantryTop = box(3.48, 0.08, 0.08, 0x37485a);
+    gantryTop.position.set(-2.5, 3.2, 2);
+    this.group.add(gantryTop);
+
+    this.bottleneckLabel = label("BOTTLENECK: --", 2.8, {
+      bg: "#b23a2b",
+      fontSize: 52,
       width: 512,
       height: 180,
     });
-    this.bottleneckLabel.position.set(0, 2.6, 2);
+    this.bottleneckLabel.position.set(-2.5, 2.7, 2);
     this.group.add(this.bottleneckLabel);
   }
 
@@ -178,7 +198,7 @@ export class ProcessingPackagingScene extends SceneModule {
       state.queueLength > 20
         ? `BOTTLENECK\nqueue ${state.queueLength} · flow slow`
         : `FLOW OK\nqueue ${state.queueLength}`;
-    const bg = state.queueLength > 20 ? "rgba(178,58,43,0.9)" : "rgba(46,125,50,0.9)";
+    const bg = state.queueLength > 20 ? "#b23a2b" : "#2e7d32";
     const mat = this.bottleneckLabel.material as THREE.MeshBasicMaterial;
     const old = mat.map;
     mat.map = makeTextTexture(text, { bg, fontSize: 56, width: 512, height: 180 });

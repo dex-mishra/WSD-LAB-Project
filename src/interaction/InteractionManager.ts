@@ -42,8 +42,8 @@ export class InteractionManager {
       this.pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
       this.pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
     });
-    renderer.domElement.addEventListener("click", () => {
-      if (!this.renderer.xr.isPresenting) this.trySelect();
+    renderer.domElement.addEventListener("click", (e: MouseEvent) => {
+      if (!this.renderer.xr.isPresenting) this.trySelect(e.clientX, e.clientY);
     });
   }
 
@@ -55,6 +55,7 @@ export class InteractionManager {
     this.active = scene;
     this.panel.hide();
     this.focus.hide();
+    this.hud?.hideInspector();
   }
 
   private setupControllers(): void {
@@ -86,7 +87,7 @@ export class InteractionManager {
     }
   }
 
-  update(): void {
+  update(dt: number): void {
     let hit: { target: THREE.Object3D; meta: InteractableMeta } | null = null;
 
     if (this.renderer.xr.isPresenting && this.controllers.length) {
@@ -108,6 +109,7 @@ export class InteractionManager {
       this.hovered = null;
       this.focus.hide();
     }
+    this.focus.update(dt);
     this.panel.faceCamera(this.camera);
   }
 
@@ -124,12 +126,23 @@ export class InteractionManager {
     return null;
   }
 
-  private trySelect(): void {
-    if (!this.hovered) {
-      this.panel.hide();
+  trySelect(clientX?: number, clientY?: number): void {
+    if (clientX !== undefined && clientY !== undefined) {
+      this.pointer.x = (clientX / window.innerWidth) * 2 - 1;
+      this.pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+      this.raycaster.setFromCamera(this.pointer, this.camera);
+      const hit = this.pick();
+      if (hit) {
+        this.select(hit.meta, hit.target);
+        return;
+      }
+    }
+    if (this.hovered) {
+      this.select(this.hovered.meta, this.hovered.target);
       return;
     }
-    this.select(this.hovered.meta, this.hovered.target);
+    this.panel.hide();
+    this.hud?.hideInspector();
   }
 
   private trySelectFromController(controller: THREE.XRTargetRaySpace): void {
@@ -142,10 +155,26 @@ export class InteractionManager {
 
   private select(meta: InteractableMeta, target: THREE.Object3D): void {
     meta.onSelect?.();
+
+    // Compute accurate 3D bounding box so the callout panel NEVER penetrates or overlaps
+    const box = new THREE.Box3().setFromObject(target);
     const pos = new THREE.Vector3();
-    target.getWorldPosition(pos);
-    pos.y += 1.4;
+
+    if (!box.isEmpty()) {
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      // Panel sits 0.35m above top of object with anchor stem connecting down to box.max.y
+      // With panel height 1.4m and stem length 0.35m, panel center is box.max.y + 1.05m
+      const topY = box.max.y;
+      pos.set(center.x, topY + 1.05, center.z);
+    } else {
+      target.getWorldPosition(pos);
+      pos.y += 2.4;
+    }
+
     this.panel.showFor(meta, pos);
+    this.panel.faceCamera(this.camera);
+    this.hud?.showInspector(meta, () => this.panel.hide());
     this.hud?.flashInfo(`${meta.title} · ${meta.zone}`);
   }
 }

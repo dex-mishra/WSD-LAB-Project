@@ -39,6 +39,7 @@ let app: App | null = null;
 function boot(): void {
   const container = document.getElementById("app")!;
   app = new App(container);
+  (window as any).__APP__ = app;
   app.start();
   overlay.classList.add("hidden");
 }

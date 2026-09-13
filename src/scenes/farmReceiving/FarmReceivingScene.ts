@@ -11,7 +11,7 @@ import {
   CRATE_STATE_COLOR,
 } from "../../app/builders";
 import { makeInteractable } from "../../interaction/Interactable";
-import type { EngineSnapshot } from "../../simulation/ScenarioEngine";
+import type { EngineSnapshot, ScenarioEngine } from "../../simulation/ScenarioEngine";
 
 /**
  * Environment 1: Farm and receiving dock.
@@ -26,6 +26,11 @@ export class FarmReceivingScene extends SceneModule {
   private queueLabel!: THREE.Mesh;
   private shadeGroup = new THREE.Group();
   private dummy = new THREE.Object3D();
+
+  constructor(engine: ScenarioEngine) {
+    super(engine);
+    this.init();
+  }
 
   protected build(): void {
     // Ground: soil + road strip
@@ -101,8 +106,12 @@ export class FarmReceivingScene extends SceneModule {
     const dock = box(8, 4, 6, PALETTE.cream);
     dock.position.set(8, 2, -10);
     this.group.add(dock);
-    const dockLabel = label("RECEIVING DOCK", 4, { fontSize: 56 });
-    dockLabel.position.set(8, 4.6, -7);
+    const dockLabel = label("RECEIVING DOCK", 4, {
+      fontSize: 56,
+      width: 800,
+      height: 200,
+    });
+    dockLabel.position.set(8, 4.6, -6.95);
     this.group.add(dockLabel);
 
     // Weighing scale
@@ -143,23 +152,24 @@ export class FarmReceivingScene extends SceneModule {
       sourceStatus: "PROPOSED",
     }));
 
-    // Temperature + time panel
-    this.tempPanel = label("FIELD HEAT\n--", 3.2, {
-      bg: "rgba(42,120,168,0.92)",
-      fontSize: 52,
-      width: 512,
-      height: 300,
+    // Temperature + time panel mounted cleanly on dock wall
+    this.tempPanel = label("FIELD HEAT\n--", 2.6, {
+      bg: "#2a78a8",
+      fontSize: 48,
+      width: 560,
+      height: 280,
     });
-    this.tempPanel.position.set(2.5, 2.0, -3);
+    this.tempPanel.position.set(5.6, 2.5, -6.95);
     this.group.add(this.tempPanel);
 
+    // Queue status sign mounted cleanly on dock wall
     this.queueLabel = label("QUEUE: --", 2.4, {
-      bg: "rgba(178,58,43,0.9)",
-      fontSize: 60,
+      bg: "#b23a2b",
+      fontSize: 52,
       width: 512,
       height: 180,
     });
-    this.queueLabel.position.set(6, 1.4, -2.5);
+    this.queueLabel.position.set(10.4, 2.5, -6.95);
     this.group.add(this.queueLabel);
   }
 
@@ -217,12 +227,12 @@ export class FarmReceivingScene extends SceneModule {
     const tempText = shaded
       ? `PRE-COOLED\n~14\u00b0C · excursion ${state.temperatureExposure}`
       : `FIELD HEAT\n~32\u00b0C · excursion ${state.temperatureExposure}`;
-    this.updateLabel(this.tempPanel, tempText, shaded ? "rgba(42,120,168,0.92)" : "rgba(178,58,43,0.85)");
+    this.updateLabel(this.tempPanel, tempText, shaded ? "#2a78a8" : "#b23a2b");
 
     this.updateLabel(
       this.queueLabel,
       `QUEUE: ${state.queueLength}`,
-      state.queueLength > 20 ? "rgba(178,58,43,0.92)" : "rgba(46,125,50,0.9)"
+      state.queueLength > 20 ? "#b23a2b" : "#2e7d32"
     );
   }
 

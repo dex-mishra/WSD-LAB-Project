@@ -1,6 +1,7 @@
 import { SCENE_ORDER, SCENE_LABELS, type SceneKey } from "../app/palette";
 import type { ScenarioEngine, EngineSnapshot } from "../simulation/ScenarioEngine";
 import type { ScenarioId } from "../simulation/types";
+import type { InteractableMeta } from "../interaction/Interactable";
 
 interface HudOptions {
   engine: ScenarioEngine;
@@ -20,6 +21,7 @@ export class Hud {
   private scenarioBtns = new Map<ScenarioId, HTMLButtonElement>();
   private dashEl!: HTMLDivElement;
   private hintEl!: HTMLDivElement;
+  private inspectorEl!: HTMLDivElement;
   private engine: ScenarioEngine;
 
   constructor(private opts: HudOptions) {
@@ -48,18 +50,22 @@ export class Hud {
     }
     top.appendChild(sceneWrap);
 
+    const actWrap = document.createElement("div");
+    actWrap.className = "hud-actions";
+
     const reset = document.createElement("button");
-    reset.className = "chip";
-    reset.textContent = "Reset position";
+    reset.className = "chip chip-action";
+    reset.textContent = "↺ Reset view";
     reset.addEventListener("click", () => this.opts.onReset());
-    top.appendChild(reset);
+    actWrap.appendChild(reset);
 
     const resetScenario = document.createElement("button");
-    resetScenario.className = "chip";
-    resetScenario.textContent = "Reset scenario";
+    resetScenario.className = "chip chip-action";
+    resetScenario.textContent = "↺ Reset scenario";
     resetScenario.addEventListener("click", () => this.engine.reset());
-    top.appendChild(resetScenario);
+    actWrap.appendChild(resetScenario);
 
+    top.appendChild(actWrap);
     this.root.appendChild(top);
 
     // Dashboard mirror (right)
@@ -85,21 +91,73 @@ export class Hud {
     this.hintEl = document.createElement("div");
     this.hintEl.className = "hud-hint";
     this.hintEl.textContent =
-      "Drag to look · WASD to move · click objects to inspect · pick a scenario below to compare baseline vs improved.";
+      "Drag mouse or press Q / E to rotate · WASD to walk · Scroll to zoom · Click objects to inspect";
     this.root.appendChild(this.hintEl);
+
+    // 2D Desktop Inspector Card (Top-Left)
+    this.inspectorEl = document.createElement("div");
+    this.inspectorEl.className = "hud-inspector hidden";
+    this.root.appendChild(this.inspectorEl);
+  }
+
+  showInspector(meta: InteractableMeta, onClose?: () => void): void {
+    const isSource = meta.sourceStatus === "SOURCE";
+    const isInference = meta.sourceStatus === "INFERENCE";
+    const statusClass = isSource ? "tag-source" : isInference ? "tag-inference" : "tag-proposed";
+    const statusText = isSource ? "Source Data" : isInference ? "Inference" : "Proposed Model";
+
+    const cleanInfo = meta.info.filter((line) => {
+      const lower = line.toLowerCase();
+      return !lower.startsWith("assettype:") && !lower.startsWith("zone:");
+    });
+
+    this.inspectorEl.innerHTML = `
+      <div class="inspector-header">
+        <div class="inspector-title-wrap">
+          <span class="inspector-zone">${meta.zone.toUpperCase()}</span>
+          <h4>${meta.title}</h4>
+        </div>
+        <button class="inspector-close" title="Close inspector">✕</button>
+      </div>
+      <div class="inspector-meta-row">
+        <span class="tag tag-type">${meta.assetType}</span>
+        <span class="tag ${statusClass}">${statusText}</span>
+      </div>
+      <ul class="inspector-bullets">
+        ${cleanInfo.map((item) => `<li>${item}</li>`).join("")}
+      </ul>
+      ${meta.onSelect ? `<div class="inspector-action-hint">⚡ Interaction available: click again to toggle</div>` : ""}
+    `;
+
+    this.inspectorEl.querySelector(".inspector-close")?.addEventListener("click", () => {
+      this.hideInspector();
+      onClose?.();
+    });
+
+    this.inspectorEl.classList.remove("hidden");
+  }
+
+  hideInspector(): void {
+    this.inspectorEl.classList.add("hidden");
   }
 
   setActiveScene(key: SceneKey): void {
     for (const [k, btn] of this.sceneBtns) {
       btn.classList.toggle("active", k === key);
     }
+    this.hideInspector();
   }
 
   flashInfo(text: string): void {
     this.hintEl.textContent = text;
   }
 
+  private dashCollapsed = false;
+  private lastSnap: EngineSnapshot | null = null;
+
   private onSnapshot(snap: EngineSnapshot): void {
+    this.lastSnap = snap;
+
     // Highlight active scenario
     for (const [id, btn] of this.scenarioBtns) {
       btn.classList.toggle("active", id === snap.scenarioId);
@@ -141,8 +199,19 @@ export class Hud {
     );
 
     this.dashEl.innerHTML =
-      `<h3>Dashboard</h3>` +
-      `<div class="dash-scenario">${snap.scenarioName} · [${snap.scenarioStatus}]</div>` +
-      rows.join("");
+      `<div class="dash-header-row">` +
+      `  <h3>📊 Operations KPIs</h3>` +
+      `  <button class="dash-toggle-btn" title="${this.dashCollapsed ? "Expand" : "Collapse"}">${this.dashCollapsed ? "+" : "−"}</button>` +
+      `</div>` +
+      (this.dashCollapsed
+        ? `<div class="dash-scenario" style="margin:0">${snap.scenarioName} · ${(yieldN).toFixed(0)}% Yield</div>`
+        : `<div class="dash-scenario">${snap.scenarioName} · [${snap.scenarioStatus}]</div>` + rows.join(""));
+
+    this.dashEl.querySelector(".dash-toggle-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.dashCollapsed = !this.dashCollapsed;
+      this.dashEl.classList.toggle("collapsed", this.dashCollapsed);
+      if (this.lastSnap) this.onSnapshot(this.lastSnap);
+    });
   }
 }

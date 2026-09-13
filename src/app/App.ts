@@ -27,7 +27,7 @@ export class App {
   readonly engine = new ScenarioEngine();
   readonly interaction: InteractionManager;
   readonly dashboard: Dashboard;
-  private readonly desktop: DesktopControls;
+  readonly desktop: DesktopControls;
   private readonly hud: Hud;
 
   private scenes: Record<SceneKey, SceneModule>;
@@ -43,16 +43,18 @@ export class App {
       antialias: true,
       powerPreference: "high-performance",
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.1;
     this.renderer.xr.enabled = true;
     container.appendChild(this.renderer.domElement);
 
     this.scene.background = new THREE.Color(0x9fc3dd);
-    this.scene.fog = new THREE.Fog(0x9fc3dd, 40, 120);
+    this.scene.fog = new THREE.Fog(0x9fc3dd, 25, 90);
 
     this.camera = new THREE.PerspectiveCamera(
       65,
@@ -91,8 +93,8 @@ export class App {
     this.desktop = new DesktopControls(this.camera, this.rig, this.renderer.domElement);
     this.dashboard = new Dashboard(this.engine);
     this.scene.add(this.dashboard.group);
-    this.dashboard.group.position.set(3.2, 1.5, -2.2);
-    this.dashboard.group.rotation.y = -Math.PI / 8;
+    this.dashboard.group.position.set(4.8, 1.35, 1.8);
+    this.dashboard.group.rotation.y = -Math.PI / 3;
 
     this.hud = new Hud({
       engine: this.engine,
@@ -107,13 +109,13 @@ export class App {
   }
 
   private setupLights(): void {
-    this.hemiLight = new THREE.HemisphereLight(0xdfeeff, 0x556b5a, 0.75);
+    this.hemiLight = new THREE.HemisphereLight(0xdfeeff, 0x556b5a, 0.9);
     this.scene.add(this.hemiLight);
 
-    this.sunLight = new THREE.DirectionalLight(0xfff2df, 1.15);
+    this.sunLight = new THREE.DirectionalLight(0xfff2df, 1.4);
     this.sunLight.position.set(14, 22, 10);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.set(2048, 2048);
+    this.sunLight.shadow.mapSize.set(4096, 4096);
     const c = this.sunLight.shadow.camera;
     c.near = 1;
     c.far = 80;
@@ -121,11 +123,17 @@ export class App {
     c.right = 30;
     c.top = 30;
     c.bottom = -30;
-    this.sunLight.shadow.bias = -0.0003;
+    this.sunLight.shadow.bias = -0.0002;
+    this.sunLight.shadow.normalBias = 0.02;
     this.scene.add(this.sunLight);
     this.scene.add(this.sunLight.target);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.15);
+    // Soft fill light from below/front to reduce harsh flat shadows
+    const fillLight = new THREE.DirectionalLight(0xc8ddf0, 0.3);
+    fillLight.position.set(-6, 2, 12);
+    this.scene.add(fillLight);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.2);
     this.scene.add(ambient);
   }
 
@@ -134,6 +142,17 @@ export class App {
     this.renderer.xr.setReferenceSpaceType("local-floor");
     const btn = VRButton.createButton(this.renderer);
     btn.classList.add("vr-button");
+    // Hide the "VR NOT SUPPORTED" button on desktop to avoid clutter.
+    // It becomes visible automatically if VR is available.
+    btn.style.display = "none";
+    const nav = navigator as Navigator & {
+      xr?: { isSessionSupported(mode: string): Promise<boolean> };
+    };
+    if (nav.xr) {
+      nav.xr.isSessionSupported("immersive-vr").then((ok) => {
+        if (ok) btn.style.display = "";
+      }).catch(() => {});
+    }
     document.body.appendChild(btn);
   }
 
@@ -197,7 +216,7 @@ export class App {
     }
     this.scenes[this.activeKey].update(dt);
     this.dashboard.update();
-    this.interaction.update();
+    this.interaction.update(dt);
     this.renderer.render(this.scene, this.camera);
   };
 

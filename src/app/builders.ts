@@ -7,7 +7,7 @@ import { PALETTE } from "./palette";
  */
 
 const _sharedGeo = {
-  box: new THREE.BoxGeometry(1, 1, 1),
+  box: new THREE.BoxGeometry(1, 1, 1, 2, 2, 2),
 };
 
 export function box(
@@ -19,10 +19,11 @@ export function box(
 ): THREE.Mesh {
   const mat = new THREE.MeshStandardMaterial({
     color,
-    roughness: opts.rough ?? 0.85,
-    metalness: opts.metal ?? 0.0,
+    roughness: opts.rough ?? 0.72,
+    metalness: opts.metal ?? 0.05,
     emissive: opts.emissive ?? 0x000000,
     emissiveIntensity: opts.emissive ? 0.6 : 0,
+    envMapIntensity: 0.4,
   });
   const mesh = new THREE.Mesh(_sharedGeo.box, mat);
   mesh.scale.set(w, h, d);
@@ -35,21 +36,76 @@ export function ground(
   w: number,
   d: number,
   color: number
-): THREE.Mesh {
+): THREE.Group {
+  const group = new THREE.Group();
+
+  // Main ground plane
   const mat = new THREE.MeshStandardMaterial({
     color,
-    roughness: 0.95,
-    metalness: 0,
+    roughness: 0.88,
+    metalness: 0.02,
   });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.receiveShadow = true;
-  return mesh;
+  group.add(mesh);
+
+  // Subtle grid overlay for spatial reference
+  const gridTex = makeGridTexture(w, d);
+  const gridMat = new THREE.MeshBasicMaterial({
+    map: gridTex,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.12,
+  });
+  const gridMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), gridMat);
+  gridMesh.rotation.x = -Math.PI / 2;
+  gridMesh.position.y = 0.005;
+  gridMesh.renderOrder = 1;
+  group.add(gridMesh);
+
+  return group;
+}
+
+/** Generate a subtle grid texture for the ground plane. */
+function makeGridTexture(w: number, d: number): THREE.CanvasTexture {
+  const res = 1024;
+  const canvas = document.createElement("canvas");
+  canvas.width = res;
+  canvas.height = res;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.clearRect(0, 0, res, res);
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.lineWidth = 1;
+
+  const cellsX = Math.max(4, Math.round(w / 2));
+  const cellsZ = Math.max(4, Math.round(d / 2));
+  const cells = Math.max(cellsX, cellsZ);
+
+  for (let i = 0; i <= cells; i++) {
+    const t = (i / cells) * res;
+    ctx.beginPath();
+    ctx.moveTo(t, 0);
+    ctx.lineTo(t, res);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, t);
+    ctx.lineTo(res, t);
+    ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.needsUpdate = true;
+  return tex;
 }
 
 /**
  * A crop-based canvas texture label used as an in-world sign or floor decal.
  * Text is kept short and high contrast per the UI guidelines.
+ * Uses 2x canvas resolution for crisp text at distance.
  */
 export function makeTextTexture(
   text: string,
@@ -61,33 +117,87 @@ export function makeTextTexture(
     width?: number;
     height?: number;
     align?: CanvasTextAlign;
+    border?: boolean;
   } = {}
 ): THREE.CanvasTexture {
-  const width = opts.width ?? 512;
-  const height = opts.height ?? 256;
+  // Use 2x resolution for crisp rendering
+  const logicalW = opts.width ?? 512;
+  const logicalH = opts.height ?? 256;
+  const scale = 2;
+  const width = logicalW * scale;
+  const height = logicalH * scale;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d")!;
 
+  const r = 24 * scale;
+
+  // Background fill
   ctx.fillStyle = opts.bg ?? "rgba(23,50,77,0.92)";
-  roundRect(ctx, 0, 0, width, height, 24);
+  roundRect(ctx, 0, 0, width, height, r);
   ctx.fill();
 
-  ctx.fillStyle = opts.fg ?? "#F7F5EE";
-  const fontSize = opts.fontSize ?? 64;
+  // Border frame for readability
+  if (opts.border !== false) {
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 2 * scale;
+    roundRect(ctx, 2 * scale, 2 * scale, width - 4 * scale, height - 4 * scale, r - 2 * scale);
+    ctx.stroke();
+  }
+
+  // Text auto-fit calculation to ensure all text fits with safe margins
+  const lines = text.split("\n");
+  const pad = (opts.padding ?? 32) * scale;
+  const maxAllowedW = width - pad * 2;
+  const maxAllowedH = height - pad * 1.6;
+
+  let fontSize = (opts.fontSize ?? 64) * scale;
   ctx.font = `700 ${fontSize}px "Segoe UI", system-ui, sans-serif`;
+
+  // Measure widest line and scale down if needed
+  let maxW = 0;
+  for (const line of lines) {
+    const w = ctx.measureText(line).width;
+    if (w > maxW) maxW = w;
+  }
+
+  if (maxW > maxAllowedW && maxW > 0) {
+    const scaleFactor = maxAllowedW / maxW;
+    fontSize = Math.floor(fontSize * scaleFactor);
+    ctx.font = `700 ${fontSize}px "Segoe UI", system-ui, sans-serif`;
+  }
+
+  // Measure total height and scale down if needed
+  let lineH = fontSize * 1.25;
+  let totalH = lines.length * lineH;
+  if (totalH > maxAllowedH && totalH > 0) {
+    const vScaleFactor = maxAllowedH / totalH;
+    fontSize = Math.floor(fontSize * vScaleFactor);
+    lineH = fontSize * 1.25;
+    ctx.font = `700 ${fontSize}px "Segoe UI", system-ui, sans-serif`;
+  }
+
   ctx.textBaseline = "middle";
   ctx.textAlign = opts.align ?? "center";
 
-  const lines = text.split("\n");
-  const lineH = fontSize * 1.2;
   const startY = height / 2 - ((lines.length - 1) * lineH) / 2;
-  const x = ctx.textAlign === "left" ? (opts.padding ?? 32) : width / 2;
+  const x = ctx.textAlign === "left" ? pad : width / 2;
+
+  // Draw text shadow first for crisp contrast
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  lines.forEach((line, i) => ctx.fillText(line, x + 2 * scale, startY + i * lineH + 2 * scale));
+
+  // Draw main text
+  ctx.fillStyle = opts.fg ?? "#F7F5EE";
   lines.forEach((line, i) => ctx.fillText(line, x, startY + i * lineH));
 
   const tex = new THREE.CanvasTexture(canvas);
-  tex.anisotropy = 4;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 16;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
   tex.needsUpdate = true;
   return tex;
 }
@@ -96,14 +206,17 @@ export function makeTextTexture(
 export function label(
   text: string,
   widthMeters: number,
-  opts: Parameters<typeof makeTextTexture>[1] = {}
+  opts: Parameters<typeof makeTextTexture>[1] & { depthWrite?: boolean } = {}
 ): THREE.Mesh {
   const tex = makeTextTexture(text, opts);
   const aspect = (opts.height ?? 256) / (opts.width ?? 512);
+  const isTransparent = opts.bg === "rgba(0,0,0,0)" || !opts.bg;
   const mat = new THREE.MeshBasicMaterial({
     map: tex,
-    transparent: true,
-    depthWrite: false,
+    transparent: isTransparent,
+    depthWrite: opts.depthWrite ?? !isTransparent,
+    depthTest: true,
+    alphaTest: isTransparent ? 0.05 : 0,
   });
   const mesh = new THREE.Mesh(
     new THREE.PlaneGeometry(widthMeters, widthMeters * aspect),
@@ -125,6 +238,7 @@ export function floorDecal(
     fontSize: 92,
     width: 512,
     height: 160,
+    border: false,
   });
   m.rotation.x = -Math.PI / 2;
   return m;
@@ -158,8 +272,8 @@ export function crateField(
 ): { mesh: THREE.InstancedMesh; setColor: (i: number, hex: number) => void } {
   const geo = new THREE.BoxGeometry(crateSize, crateSize * 0.7, crateSize);
   const mat = new THREE.MeshStandardMaterial({
-    roughness: 0.8,
-    metalness: 0.05,
+    roughness: 0.7,
+    metalness: 0.08,
   });
   const mesh = new THREE.InstancedMesh(geo, mat, count);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);

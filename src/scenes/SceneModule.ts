@@ -10,11 +10,13 @@ import type { SceneKey } from "../app/palette";
 export abstract class SceneModule {
   readonly group = new THREE.Group();
   abstract readonly key: SceneKey;
-  protected unsub: () => void;
+  protected unsub?: () => void;
 
-  constructor(protected engine: ScenarioEngine) {
+  constructor(protected engine: ScenarioEngine) {}
+
+  protected init(): void {
     this.build();
-    this.unsub = engine.subscribe((snap) => this.onSnapshot(snap));
+    this.unsub = this.engine.subscribe((snap) => this.onSnapshot(snap));
   }
 
   /** Construct static + interactive geometry once. */
@@ -27,6 +29,6 @@ export abstract class SceneModule {
   update(_dt: number): void {}
 
   dispose(): void {
-    this.unsub();
+    this.unsub?.();
   }
 }

@@ -31,6 +31,17 @@ export class DesktopControls {
     dom.addEventListener("pointerdown", this.onPointerDown);
     window.addEventListener("pointerup", this.onPointerUp);
     window.addEventListener("pointermove", this.onPointerMove);
+    dom.addEventListener("contextmenu", (e) => e.preventDefault());
+    dom.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault();
+        const zoomStep = Math.sign(e.deltaY) * 0.8;
+        this.forward.set(Math.sin(this.yaw), 0, Math.cos(this.yaw));
+        this.rig.position.addScaledVector(this.forward, zoomStep);
+      },
+      { passive: false }
+    );
   }
 
   reset(pos: THREE.Vector3): void {
@@ -38,6 +49,13 @@ export class DesktopControls {
     this.pitch = 0;
     this.rig.position.copy(pos);
     this.camera.rotation.set(0, 0, 0);
+  }
+
+  setLook(yaw: number, pitch = 0): void {
+    this.yaw = yaw;
+    this.pitch = pitch;
+    this.rig.rotation.y = this.yaw;
+    this.camera.rotation.x = this.pitch;
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
@@ -48,28 +66,41 @@ export class DesktopControls {
   };
 
   private onPointerDown = (e: PointerEvent) => {
-    // Left button drag = look. Interaction manager handles selection on click.
-    if (e.button !== 0) return;
+    // Left click (0) or Right click (2) drag = rotate camera
+    if (e.button !== 0 && e.button !== 2) return;
     this.dragging = true;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
+    try {
+      (e.target as HTMLElement)?.setPointerCapture(e.pointerId);
+    } catch {}
   };
-  private onPointerUp = () => {
+
+  private onPointerUp = (e: PointerEvent) => {
     this.dragging = false;
+    try {
+      (e.target as HTMLElement)?.releasePointerCapture(e.pointerId);
+    } catch {}
   };
+
   private onPointerMove = (e: PointerEvent) => {
     if (!this.dragging) return;
     const dx = e.clientX - this.lastX;
     const dy = e.clientY - this.lastY;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
-    this.yaw -= dx * 0.0035;
-    this.pitch -= dy * 0.0035;
+    this.yaw -= dx * 0.004;
+    this.pitch -= dy * 0.004;
     const lim = Math.PI / 2 - 0.05;
     this.pitch = Math.max(-lim, Math.min(lim, this.pitch));
   };
 
   update(dt: number): void {
+    // Keyboard rotation with Q and E
+    const rotSpeed = 1.8; // radians / sec
+    if (this.keys.has("q")) this.yaw += rotSpeed * dt;
+    if (this.keys.has("e")) this.yaw -= rotSpeed * dt;
+
     // Apply look to the camera (pitch) and rig (yaw) so movement stays planar.
     this.rig.rotation.y = this.yaw;
     this.camera.rotation.x = this.pitch;

@@ -4,7 +4,7 @@ import type { SceneKey } from "../../app/palette";
 import { PALETTE } from "../../app/palette";
 import { box, ground, label, floorDecal, makeTextTexture } from "../../app/builders";
 import { makeInteractable } from "../../interaction/Interactable";
-import type { EngineSnapshot } from "../../simulation/ScenarioEngine";
+import type { EngineSnapshot, ScenarioEngine } from "../../simulation/ScenarioEngine";
 
 /**
  * Environment 4: Dispatch and market feedback.
@@ -20,6 +20,11 @@ export class DispatchMarketScene extends SceneModule {
   private demandBar!: THREE.Mesh;
   private matchLabel!: THREE.Mesh;
   private orderCards: THREE.Mesh[] = [];
+
+  constructor(engine: ScenarioEngine) {
+    super(engine);
+    this.init();
+  }
 
   protected build(): void {
     const floor = ground(44, 32, 0xbcc9b8);
@@ -111,8 +116,12 @@ export class DispatchMarketScene extends SceneModule {
     this.demandBars.position.set(3, 0, -8);
     this.group.add(this.demandBars);
 
+    const matchPost = box(0.08, 3.4, 0.08, 0x37485a);
+    matchPost.position.set(3, 1.7, -6);
+    this.group.add(matchPost);
+
     this.matchLabel = label("PROCUREMENT: --", 3.2, {
-      bg: "rgba(178,58,43,0.9)",
+      bg: "#b23a2b",
       fontSize: 50,
       width: 512,
       height: 180,
@@ -120,7 +129,11 @@ export class DispatchMarketScene extends SceneModule {
     this.matchLabel.position.set(3, 3.4, -6);
     this.group.add(this.matchLabel);
 
-    const title = label("DISPATCH & MARKET", 6, { fontSize: 52 });
+    const title = label("DISPATCH & MARKET", 6, {
+      fontSize: 52,
+      width: 1024,
+      height: 240,
+    });
     title.position.set(0, 5.4, -11);
     this.group.add(title);
   }
@@ -165,7 +178,7 @@ export class DispatchMarketScene extends SceneModule {
     const text = flags.demandMatched
       ? "PROCUREMENT: DEMAND-MATCHED"
       : "PROCUREMENT: FIXED HABITUAL";
-    const bg = flags.demandMatched ? "rgba(46,125,50,0.9)" : "rgba(178,58,43,0.9)";
+    const bg = flags.demandMatched ? "#2e7d32" : "#b23a2b";
     const lmat = this.matchLabel.material as THREE.MeshBasicMaterial;
     const old = lmat.map;
     lmat.map = makeTextTexture(text, { bg, fontSize: 46, width: 512, height: 180 });

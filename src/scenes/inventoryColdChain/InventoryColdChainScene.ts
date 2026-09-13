@@ -12,7 +12,7 @@ import {
   makeTextTexture,
 } from "../../app/builders";
 import { makeInteractable } from "../../interaction/Interactable";
-import type { EngineSnapshot } from "../../simulation/ScenarioEngine";
+import type { EngineSnapshot, ScenarioEngine } from "../../simulation/ScenarioEngine";
 
 /**
  * Environment 3: Inventory and cold-chain focus area.
@@ -32,6 +32,11 @@ export class InventoryColdChainScene extends SceneModule {
   private pathShort = new THREE.Group();
   private pathLong = new THREE.Group();
   private dummy = new THREE.Object3D();
+
+  constructor(engine: ScenarioEngine) {
+    super(engine);
+    this.init();
+  }
 
   protected build(): void {
     const floor = ground(44, 32, 0xcfd6dc);
@@ -83,7 +88,7 @@ export class InventoryColdChainScene extends SceneModule {
 
     // Thermometer / hygrometer panel
     this.thermometer = label("COLD ROOM\n--", 2.6, {
-      bg: "rgba(42,120,168,0.92)",
+      bg: "#2a78a8",
       fontSize: 52,
       width: 512,
       height: 280,
@@ -91,8 +96,12 @@ export class InventoryColdChainScene extends SceneModule {
     this.thermometer.position.set(2, 3.6, -0.2);
     this.group.add(this.thermometer);
 
+    const capPost = box(0.08, 2.2, 0.08, 0x37485a);
+    capPost.position.set(-6, 1.1, 1);
+    this.group.add(capPost);
+
     this.capacityLabel = label("CAPACITY --", 2.6, {
-      bg: "rgba(23,50,77,0.9)",
+      bg: "#17324d",
       fontSize: 52,
       width: 512,
       height: 200,
@@ -100,8 +109,12 @@ export class InventoryColdChainScene extends SceneModule {
     this.capacityLabel.position.set(-6, 2.2, 1);
     this.group.add(this.capacityLabel);
 
+    const fefoPost = box(0.08, 2.2, 0.08, 0x37485a);
+    fefoPost.position.set(8, 1.1, 1);
+    this.group.add(fefoPost);
+
     this.fefoLabel = label("STOCK ORDER: --", 3, {
-      bg: "rgba(46,125,50,0.9)",
+      bg: "#2e7d32",
       fontSize: 50,
       width: 512,
       height: 180,
@@ -114,7 +127,11 @@ export class InventoryColdChainScene extends SceneModule {
     this.group.add(this.pathLong);
     this.group.add(this.pathShort);
 
-    const title = label("INVENTORY & COLD CHAIN", 6, { fontSize: 52 });
+    const title = label("INVENTORY & COLD CHAIN", 6, {
+      fontSize: 52,
+      width: 1024,
+      height: 240,
+    });
     title.position.set(0, 5, -9.5);
     this.group.add(title);
   }
@@ -212,20 +229,20 @@ export class InventoryColdChainScene extends SceneModule {
     const coolText = flags.shadePrecooling
       ? `COLD ROOM\n~4\u00b0C · excursion ${state.temperatureExposure}`
       : `COLD ROOM\n~9\u00b0C · excursion ${state.temperatureExposure}`;
-    this.retexture(this.thermometer, coolText, "rgba(42,120,168,0.92)", 280);
+    this.retexture(this.thermometer, coolText, "#2a78a8", 280);
 
     const capPct = Math.round((state.capacityUsed / Math.max(1, state.capacityAvailable)) * 100);
     this.retexture(
       this.capacityLabel,
       `CAPACITY\n${state.capacityUsed}/${state.capacityAvailable} (${capPct}%)`,
-      capPct > 95 ? "rgba(178,58,43,0.9)" : "rgba(23,50,77,0.9)",
+      capPct > 95 ? "#b23a2b" : "#17324d",
       200
     );
 
     this.retexture(
       this.fefoLabel,
-      flags.fefo ? "STOCK ORDER: FEFO" : "STOCK ORDER: MIXED",
-      flags.fefo ? "rgba(46,125,50,0.9)" : "rgba(178,58,43,0.9)",
+      flags.fefo ? "FEFO ACTIVE\nfirst-expiry first-out" : "FIFO ROTATION\nrisk of hidden expiry",
+      flags.fefo ? "#2e7d32" : "#f4c542",
       180
     );
     void available;
