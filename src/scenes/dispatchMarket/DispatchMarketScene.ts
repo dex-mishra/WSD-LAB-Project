@@ -485,9 +485,18 @@ export class DispatchMarketScene extends SceneModule {
 
     // 3. Retail Customer / Wholesale Buyer (Browsing the stall)
     const customer = createWorkerFigure({
-      shirtColor: 0x8a3838,
-      apronColor: 0x334455,
-      capColor: 0x2a78a8,
+      shirtColor: 0x726cb8, // Lavender / purple graphic T-shirt matching reference image
+      pantsColor: 0x373d45, // Dark charcoal shorts
+      hairColor: 0xaa4222,  // Auburn / reddish-brown swept hair
+      skinColor: 0xe0ac86,  // Warm natural skin tone
+      shoeColor: 0x22262a,  // Athletic sneakers with white midsole
+      isShorts: true,
+      shirtGraphic: true,
+      role: "shopper",
+      hasApron: false,
+      hasMask: false,
+      hasCap: false,
+      hasGloves: false,
     });
     customer.position.set(11.5, 0, 2.2);
     customer.rotation.y = Math.PI; // Facing the produce stall!

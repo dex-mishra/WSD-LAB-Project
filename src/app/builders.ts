@@ -303,100 +303,654 @@ export interface WorkerFigureOptions {
   apronColor?: number;
   capColor?: number;
   skinColor?: number;
+  hairColor?: number;
+  shoeColor?: number;
   gloveColor?: number;
+  hasApron?: boolean;
+  hasMask?: boolean;
+  hasCap?: boolean;
+  hasGloves?: boolean;
+  isShorts?: boolean;
+  shirtGraphic?: boolean;
+  hairStyle?: "swept" | "short" | "cap";
   armAngle?: number;
+  role?: "worker" | "shopper" | "farmer" | "vendor" | "inspector";
 }
 
 /**
- * Creates a stylized industrial food factory worker figure with PPE (hairnet/cap, mask, apron, gloves, boots).
+ * Generates a realistic high-resolution face canvas texture with eyes, irises, pupils,
+ * highlights, eyelashes, eyebrows, nose bridge, lips, and subtle skin shading.
+ */
+function makeRealisticFaceTexture(skinHex: number, eyeColor: string = "#2c1c14"): THREE.CanvasTexture {
+  const w = 512;
+  const h = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+
+  const skinStr = "#" + skinHex.toString(16).padStart(6, "0");
+
+  // Smooth skin base
+  ctx.fillStyle = skinStr;
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle natural cheek warmth
+  const cheekGrad = ctx.createRadialGradient(256, 270, 40, 256, 270, 200);
+  cheekGrad.addColorStop(0, "rgba(225, 115, 105, 0.18)");
+  cheekGrad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = cheekGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Eyes (Left & Right)
+  const eyeY = 220;
+  for (const eyeX of [176, 336]) {
+    // Sclera (Eye White) with smooth shading
+    ctx.beginPath();
+    ctx.ellipse(eyeX, eyeY, 32, 17, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#fafbfc";
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "rgba(45,25,20,0.45)";
+    ctx.stroke();
+
+    // Iris
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, 13.5, 0, Math.PI * 2);
+    ctx.fillStyle = eyeColor;
+    ctx.fill();
+
+    // Iris inner detail
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, 13.5, 0, Math.PI * 2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(10,5,5,0.7)";
+    ctx.stroke();
+
+    // Pupil
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, 6.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#0c0d0e";
+    ctx.fill();
+
+    // Light reflection highlight spark
+    ctx.beginPath();
+    ctx.arc(eyeX - 4, eyeY - 4, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+
+    // Upper Eyelid & Eyelash rim
+    ctx.beginPath();
+    ctx.ellipse(eyeX, eyeY - 2, 34, 17, 0, Math.PI, Math.PI * 2);
+    ctx.lineWidth = 4.5;
+    ctx.strokeStyle = "#24130c";
+    ctx.stroke();
+
+    // Eyebrows (Natural arch)
+    ctx.beginPath();
+    ctx.moveTo(eyeX - 36, eyeY - 30);
+    ctx.quadraticCurveTo(eyeX, eyeY - 46, eyeX + 36, eyeY - 32);
+    ctx.lineWidth = 7;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#381a10";
+    ctx.stroke();
+  }
+
+  // Nose bridge & subtle shading
+  ctx.beginPath();
+  ctx.moveTo(256, 226);
+  ctx.lineTo(252, 292);
+  ctx.lineTo(242, 302);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(110, 55, 35, 0.22)";
+  ctx.stroke();
+
+  // Nostril shadows
+  for (const nx of [244, 268]) {
+    ctx.beginPath();
+    ctx.ellipse(nx, 304, 5, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(80, 35, 25, 0.35)";
+    ctx.fill();
+  }
+
+  // Natural Mouth & Lips
+  ctx.beginPath();
+  ctx.moveTo(218, 358);
+  ctx.quadraticCurveTo(256, 370, 294, 358);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(150, 50, 50, 0.55)";
+  ctx.stroke();
+
+  // Upper lip
+  ctx.beginPath();
+  ctx.ellipse(256, 354, 30, 6.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(185, 75, 75, 0.22)";
+  ctx.fill();
+
+  // Lower lip
+  ctx.beginPath();
+  ctx.ellipse(256, 364, 26, 7.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(205, 85, 85, 0.26)";
+  ctx.fill();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+
+/**
+ * Generates a graphic print texture for casual T-shirts (like the reference image's crest).
+ */
+function makeShirtGraphicTexture(shirtHex: number): THREE.CanvasTexture {
+  const w = 512;
+  const h = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+
+  const shirtStr = "#" + shirtHex.toString(16).padStart(6, "0");
+  ctx.fillStyle = shirtStr;
+  ctx.fillRect(0, 0, w, h);
+
+  // Center stylized crest logo
+  const grad = ctx.createLinearGradient(180, 180, 330, 330);
+  grad.addColorStop(0, "#00c6ff");
+  grad.addColorStop(0.5, "#0072ff");
+  grad.addColorStop(1, "#f4c542");
+
+  ctx.beginPath();
+  ctx.arc(256, 250, 68, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(256, 250, 52, 0, Math.PI * 2);
+  ctx.fillStyle = shirtStr;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(256, 250, 32, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/**
+ * Creates a realistic 3D humanoid character figure with realistic anatomy,
+ * expressive face textures, 3D volumetric hair, crewneck/polo shirt, shorts or pants,
+ * articulated multi-segment arms with detailed hands, and athletic sneakers or work boots.
  */
 export function createWorkerFigure(opts: WorkerFigureOptions = {}): THREE.Group {
   const group = new THREE.Group();
 
   const shirtCol = opts.shirtColor ?? 0x2a78a8;
-  const pantsCol = opts.pantsColor ?? 0x1f2e3d;
+  const pantsCol = opts.pantsColor ?? 0x232e3b;
   const apronCol = opts.apronColor ?? 0xf5f7fa;
   const capCol = opts.capColor ?? 0xf4c542;
-  const skinCol = opts.skinColor ?? 0xdca880;
+  const skinCol = opts.skinColor ?? 0xe0ac86; // Natural warm skin tone
+  const hairCol = opts.hairColor ?? 0x8d3b24; // Auburn / chestnut brown hair
+  const shoeCol = opts.shoeColor ?? 0x1f2429;
   const gloveCol = opts.gloveColor ?? 0x4aa3df;
 
-  // 1. Safety Boots (ground level)
-  const bootL = box(0.14, 0.12, 0.22, 0x181e24);
-  bootL.position.set(-0.11, 0.06, 0.02);
-  group.add(bootL);
+  const hasApron = opts.hasApron ?? (opts.role !== "shopper" && opts.apronColor !== undefined);
+  const hasMask = opts.hasMask ?? (opts.role === "worker");
+  const hasCap = opts.hasCap ?? (opts.capColor !== undefined && opts.role !== "shopper");
+  const hasGloves = opts.hasGloves ?? (opts.role === "worker" || opts.gloveColor !== undefined);
+  const isShorts = opts.isShorts ?? (opts.role === "shopper");
+  const shirtGraphic = opts.shirtGraphic ?? (opts.role === "shopper");
 
-  const bootR = box(0.14, 0.12, 0.22, 0x181e24);
-  bootR.position.set(0.11, 0.06, 0.02);
-  group.add(bootR);
+  const skinMat = new THREE.MeshStandardMaterial({
+    color: skinCol,
+    roughness: 0.7,
+    metalness: 0.05,
+  });
 
-  // 2. Legs / Trousers
-  const legL = box(0.13, 0.62, 0.15, pantsCol);
-  legL.position.set(-0.11, 0.42, 0);
-  group.add(legL);
+  const shirtMat = shirtGraphic
+    ? new THREE.MeshStandardMaterial({
+        map: makeShirtGraphicTexture(shirtCol),
+        roughness: 0.75,
+        metalness: 0.05,
+      })
+    : new THREE.MeshStandardMaterial({
+        color: shirtCol,
+        roughness: 0.75,
+        metalness: 0.05,
+      });
 
-  const legR = box(0.13, 0.62, 0.15, pantsCol);
-  legR.position.set(0.11, 0.42, 0);
-  group.add(legR);
+  const pantsMat = new THREE.MeshStandardMaterial({
+    color: pantsCol,
+    roughness: 0.82,
+    metalness: 0.05,
+  });
 
-  // 3. Torso / Work Shirt
-  const torso = box(0.38, 0.48, 0.22, shirtCol);
-  torso.position.set(0, 0.96, 0);
-  group.add(torso);
+  // ==================== 1. HEAD & FACE ====================
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 1.48, 0);
 
-  // 4. Food-Grade Hygiene Apron
-  const apron = box(0.32, 0.44, 0.23, apronCol);
-  apron.position.set(0, 0.94, 0.01);
-  group.add(apron);
+  // Realistic Face Texture applied to front
+  const faceTex = makeRealisticFaceTexture(skinCol);
+  const faceMat = new THREE.MeshStandardMaterial({
+    map: faceTex,
+    roughness: 0.65,
+    metalness: 0.04,
+  });
 
-  // 5. Neck
-  const neck = box(0.1, 0.08, 0.1, skinCol);
-  neck.position.set(0, 1.23, 0);
+  // Anatomical Head Mesh (Rounded sphere base)
+  const headMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.115, 18, 16),
+    faceMat
+  );
+  headMesh.scale.set(0.92, 1.05, 0.96);
+  headGroup.add(headMesh);
+
+  // 3D Sculpted Nose Bridge
+  const nose = new THREE.Mesh(
+    new THREE.ConeGeometry(0.02, 0.05, 8),
+    skinMat
+  );
+  nose.rotation.x = -Math.PI / 2;
+  nose.position.set(0, -0.01, 0.115);
+  headGroup.add(nose);
+
+  // Ears (Left and Right)
+  for (const ex of [-0.11, 0.11]) {
+    const ear = new THREE.Mesh(
+      new THREE.SphereGeometry(0.025, 8, 8),
+      skinMat
+    );
+    ear.scale.set(0.5, 1.2, 0.8);
+    ear.position.set(ex, 0, 0);
+    headGroup.add(ear);
+  }
+
+  // Volumetric Stylized 3D Hair (like in the reference photo)
+  const hairMat = new THREE.MeshStandardMaterial({
+    color: hairCol,
+    roughness: 0.85,
+    metalness: 0.05,
+  });
+
+  const hairGroup = new THREE.Group();
+
+  // Top/Back Volume
+  const hairTop = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 14, 12),
+    hairMat
+  );
+  hairTop.scale.set(0.96, 0.85, 1.02);
+  hairTop.position.set(0, 0.04, -0.015);
+  hairGroup.add(hairTop);
+
+  // Front Swept Bangs / Strands
+  const bangL = new THREE.Mesh(
+    new THREE.ConeGeometry(0.045, 0.12, 8),
+    hairMat
+  );
+  bangL.rotation.z = -0.45;
+  bangL.rotation.x = 0.2;
+  bangL.position.set(-0.045, 0.075, 0.088);
+  hairGroup.add(bangL);
+
+  const bangR = new THREE.Mesh(
+    new THREE.ConeGeometry(0.04, 0.11, 8),
+    hairMat
+  );
+  bangR.rotation.z = 0.55;
+  bangR.rotation.x = 0.2;
+  bangR.position.set(0.045, 0.07, 0.09);
+  hairGroup.add(bangR);
+
+  // Sideburns
+  for (const sx of [-0.108, 0.108]) {
+    const sideburn = box(0.02, 0.06, 0.04, hairCol, { rough: 0.85 });
+    sideburn.position.set(sx, -0.01, 0.01);
+    hairGroup.add(sideburn);
+  }
+
+  headGroup.add(hairGroup);
+
+  // Optional Safety Cap / Hygiene Bouffant Cap
+  if (hasCap) {
+    const capMat = new THREE.MeshStandardMaterial({ color: capCol, roughness: 0.6 });
+    const cap = new THREE.Mesh(
+      new THREE.SphereGeometry(0.128, 14, 12),
+      capMat
+    );
+    cap.scale.set(1.0, 0.7, 1.05);
+    cap.position.set(0, 0.06, 0);
+    headGroup.add(cap);
+
+    // Cap brim
+    const brim = box(0.18, 0.02, 0.1, capCol, { rough: 0.6 });
+    brim.position.set(0, 0.04, 0.12);
+    headGroup.add(brim);
+  }
+
+  // Optional Hygiene Mask
+  if (hasMask) {
+    const mask = box(0.19, 0.08, 0.1, 0xdce8f0, { rough: 0.7 });
+    mask.position.set(0, -0.035, 0.065);
+    headGroup.add(mask);
+  }
+
+  group.add(headGroup);
+
+  // ==================== 2. NECK & COLLAR ====================
+  const neck = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.055, 0.1, 12),
+    skinMat
+  );
+  neck.position.set(0, 1.33, 0);
   group.add(neck);
 
-  // 6. Head
-  const head = box(0.2, 0.22, 0.2, skinCol);
-  head.position.set(0, 1.38, 0);
-  group.add(head);
+  // Crewneck T-shirt Collar Ring
+  const collar = new THREE.Mesh(
+    new THREE.TorusGeometry(0.065, 0.015, 8, 16),
+    shirtMat
+  );
+  collar.rotation.x = Math.PI / 2;
+  collar.position.set(0, 1.28, 0);
+  group.add(collar);
 
-  // 7. Face Mask (hygiene standard)
-  const mask = box(0.21, 0.09, 0.12, 0xe2eaf0);
-  mask.position.set(0, 1.34, 0.06);
-  group.add(mask);
+  // ==================== 3. TORSO & WORK SHIRT ====================
+  const torsoGroup = new THREE.Group();
 
-  // 8. Safety Cap / Hairnet
-  const cap = box(0.22, 0.12, 0.22, capCol);
-  cap.position.set(0, 1.5, 0);
-  group.add(cap);
+  // Upper Chest / Shoulders
+  const chest = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.16, 0.28, 14),
+    shirtMat
+  );
+  chest.scale.set(1.15, 1.0, 0.75);
+  chest.position.set(0, 1.14, 0);
+  torsoGroup.add(chest);
 
-  // 9. Left Arm
-  const armL = new THREE.Group();
-  armL.position.set(-0.24, 1.15, 0);
-  const upperArmL = box(0.1, 0.36, 0.1, shirtCol);
-  upperArmL.position.set(0, -0.16, 0.08);
-  upperArmL.rotation.x = opts.armAngle ?? 0.45;
-  const glL = box(0.11, 0.12, 0.11, gloveCol);
-  glL.position.set(0, -0.32, 0.16);
-  glL.rotation.x = opts.armAngle ?? 0.45;
-  armL.add(upperArmL);
-  armL.add(glL);
+  // Lower Abdomen / Waist
+  const waist = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.16, 0.15, 0.22, 14),
+    shirtMat
+  );
+  waist.scale.set(1.08, 1.0, 0.72);
+  waist.position.set(0, 0.92, 0);
+  torsoGroup.add(waist);
+
+  // Optional Food Safety Apron
+  if (hasApron) {
+    const apron = box(0.32, 0.48, 0.04, apronCol, { rough: 0.65 });
+    apron.position.set(0, 1.0, 0.095);
+    torsoGroup.add(apron);
+
+    // Apron neck strap
+    const strapL = box(0.02, 0.22, 0.02, apronCol);
+    strapL.position.set(-0.08, 1.22, 0.06);
+    strapL.rotation.z = -0.3;
+    torsoGroup.add(strapL);
+
+    const strapR = box(0.02, 0.22, 0.02, apronCol);
+    strapR.position.set(0.08, 1.22, 0.06);
+    strapR.rotation.z = 0.3;
+    torsoGroup.add(strapR);
+  }
+
+  group.add(torsoGroup);
+
+  // ==================== 4. ARTICULATED ARMS & HANDS ====================
+  const armAngle = opts.armAngle ?? 0.25;
+
+  // Left Arm
+  const armL = buildRealisticArm({
+    side: "left",
+    shirtMat,
+    skinMat,
+    gloveCol,
+    hasGloves,
+    armAngle,
+  });
+  armL.position.set(-0.21, 1.24, 0);
   armL.name = "armL";
   group.add(armL);
 
-  // 10. Right Arm
-  const armR = new THREE.Group();
-  armR.position.set(0.24, 1.15, 0);
-  const upperArmR = box(0.1, 0.36, 0.1, shirtCol);
-  upperArmR.position.set(0, -0.16, 0.08);
-  upperArmR.rotation.x = opts.armAngle ?? 0.45;
-  const glR = box(0.11, 0.12, 0.11, gloveCol);
-  glR.position.set(0, -0.32, 0.16);
-  glR.rotation.x = opts.armAngle ?? 0.45;
-  armR.add(upperArmR);
-  armR.add(glR);
+  // Right Arm
+  const armR = buildRealisticArm({
+    side: "right",
+    shirtMat,
+    skinMat,
+    gloveCol,
+    hasGloves,
+    armAngle,
+  });
+  armR.position.set(0.21, 1.24, 0);
   armR.name = "armR";
   group.add(armR);
 
+  // ==================== 5. PELVIS, LEGS & SNEAKERS ====================
+  // Pelvis / Waistband (Shorts or Trousers)
+  const pelvis = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.155, 0.145, 0.16, 12),
+    pantsMat
+  );
+  pelvis.scale.set(1.08, 1.0, 0.72);
+  pelvis.position.set(0, 0.75, 0);
+  group.add(pelvis);
+
+  // Left Leg
+  const legL = buildRealisticLeg({
+    side: "left",
+    pantsMat,
+    skinMat,
+    shoeCol,
+    isShorts,
+  });
+  legL.position.set(-0.10, 0.68, 0);
+  legL.name = "legL";
+  group.add(legL);
+
+  // Right Leg
+  const legR = buildRealisticLeg({
+    side: "right",
+    pantsMat,
+    skinMat,
+    shoeCol,
+    isShorts,
+  });
+  legR.position.set(0.10, 0.68, 0);
+  legR.name = "legR";
+  group.add(legR);
+
   return group;
+}
+
+/**
+ * Builds a realistic multi-segment arm with deltoid sleeve cap, bicep,
+ * elbow joint, forearm, wrist, and 4-finger sculpted hand with thumb.
+ */
+function buildRealisticArm(opts: {
+  side: "left" | "right";
+  shirtMat: THREE.Material;
+  skinMat: THREE.Material;
+  gloveCol: number;
+  hasGloves: boolean;
+  armAngle: number;
+}): THREE.Group {
+  const arm = new THREE.Group();
+  const sign = opts.side === "left" ? -1 : 1;
+
+  // 1. Deltoid Shoulder Sleeve Cap
+  const sleeve = new THREE.Mesh(
+    new THREE.SphereGeometry(0.062, 10, 10),
+    opts.shirtMat
+  );
+  sleeve.position.set(0, 0, 0);
+  arm.add(sleeve);
+
+  // Sleeve cuff
+  const cuff = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.052, 0.05, 0.08, 10),
+    opts.shirtMat
+  );
+  cuff.position.set(0, -0.06, 0);
+  arm.add(cuff);
+
+  // 2. Upper Arm Bicep (Skin tone)
+  const bicep = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.044, 0.038, 0.18, 10),
+    opts.skinMat
+  );
+  bicep.position.set(0, -0.16, 0.02);
+  bicep.rotation.x = opts.armAngle;
+  arm.add(bicep);
+
+  // 3. Elbow Joint Sphere
+  const elbow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.038, 8, 8),
+    opts.skinMat
+  );
+  elbow.position.set(0, -0.24, 0.04);
+  arm.add(elbow);
+
+  // 4. Forearm
+  const forearm = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.038, 0.032, 0.18, 10),
+    opts.skinMat
+  );
+  forearm.position.set(0, -0.32, 0.08);
+  forearm.rotation.x = opts.armAngle * 1.3;
+  arm.add(forearm);
+
+  // 5. Hand (Palm, Thumb & 4 Sculpted Fingers)
+  const handMat = opts.hasGloves
+    ? new THREE.MeshStandardMaterial({ color: opts.gloveCol, roughness: 0.5 })
+    : opts.skinMat;
+
+  const handGroup = new THREE.Group();
+  handGroup.position.set(0, -0.42, 0.12);
+  handGroup.rotation.x = opts.armAngle * 1.3;
+
+  // Palm
+  const palm = box(0.055, 0.06, 0.025, 0x0, { rough: 0.7 });
+  palm.material = handMat;
+  handGroup.add(palm);
+
+  // Thumb
+  const thumb = box(0.016, 0.035, 0.016, 0x0);
+  thumb.material = handMat;
+  thumb.position.set(sign * 0.032, 0.01, 0.01);
+  thumb.rotation.z = sign * -0.5;
+  handGroup.add(thumb);
+
+  // 4 Fingers
+  for (let f = 0; f < 4; f++) {
+    const finger = box(0.011, 0.038, 0.012, 0x0);
+    finger.material = handMat;
+    finger.position.set(-0.02 + f * 0.013, -0.042, 0.005);
+    finger.rotation.x = 0.2; // Slight natural relaxed curl
+    handGroup.add(finger);
+  }
+
+  arm.add(handGroup);
+  return arm;
+}
+
+/**
+ * Builds a realistic multi-segment leg with thigh (shorts or pants),
+ * knee joint, calf, ankle, and detailed athletic sneaker or work boot.
+ */
+function buildRealisticLeg(opts: {
+  side: "left" | "right";
+  pantsMat: THREE.Material;
+  skinMat: THREE.Material;
+  shoeCol: number;
+  isShorts: boolean;
+}): THREE.Group {
+  const leg = new THREE.Group();
+
+  // 1. Thigh (Upper Leg)
+  const thighMat = opts.isShorts ? opts.pantsMat : opts.pantsMat;
+  const thigh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.068, 0.056, 0.28, 12),
+    thighMat
+  );
+  thigh.position.set(0, -0.14, 0);
+  leg.add(thigh);
+
+  // Shorts hem cuff if shorts
+  if (opts.isShorts) {
+    const shortsHem = box(0.14, 0.02, 0.14, 0x1f2429);
+    shortsHem.position.set(0, -0.26, 0);
+    leg.add(shortsHem);
+
+    // Bare lower thigh in skin tone
+    const bareThigh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.054, 0.048, 0.08, 10),
+      opts.skinMat
+    );
+    bareThigh.position.set(0, -0.30, 0);
+    leg.add(bareThigh);
+  }
+
+  // 2. Knee Joint Sphere
+  const kneeMat = opts.isShorts ? opts.skinMat : opts.pantsMat;
+  const knee = new THREE.Mesh(
+    new THREE.SphereGeometry(0.05, 8, 8),
+    kneeMat
+  );
+  knee.position.set(0, -0.35, 0.01);
+  leg.add(knee);
+
+  // 3. Lower Leg (Calf & Shin)
+  const calfMat = opts.isShorts ? opts.skinMat : opts.pantsMat;
+  const calf = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.048, 0.038, 0.26, 10),
+    calfMat
+  );
+  calf.position.set(0, -0.48, 0);
+  leg.add(calf);
+
+  // 4. White Athletic Sock
+  const sock = box(0.08, 0.05, 0.08, 0xf0f4f8);
+  sock.position.set(0, -0.59, 0);
+  leg.add(sock);
+
+  // 5. Realistic Athletic Sneaker / Work Boot (Ground Level)
+  const shoeGroup = new THREE.Group();
+  shoeGroup.position.set(0, -0.64, 0.03);
+
+  // Rubber Outsole (Black/Dark)
+  const outsole = box(0.10, 0.02, 0.22, 0x111315, { rough: 0.9 });
+  outsole.position.set(0, 0.01, 0);
+  shoeGroup.add(outsole);
+
+  // White EVA Midsole
+  const midsole = box(0.096, 0.025, 0.21, 0xffffff, { rough: 0.5 });
+  midsole.position.set(0, 0.03, 0);
+  shoeGroup.add(midsole);
+
+  // Upper Sneaker Body (Shoe color)
+  const upper = box(0.092, 0.065, 0.20, opts.shoeCol, { rough: 0.65 });
+  upper.position.set(0, 0.07, -0.005);
+  shoeGroup.add(upper);
+
+  // Rounded Toe Cap
+  const toeCap = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.044, 0.046, 0.04, 8),
+    new THREE.MeshStandardMaterial({ color: 0xd0dfea, roughness: 0.5 })
+  );
+  toeCap.position.set(0, 0.05, 0.08);
+  shoeGroup.add(toeCap);
+
+  // Shoe Laces (White criss-cross)
+  for (const lz of [0.01, 0.04]) {
+    const lace = box(0.06, 0.008, 0.015, 0xffffff);
+    lace.position.set(0, 0.105, lz);
+    shoeGroup.add(lace);
+  }
+
+  leg.add(shoeGroup);
+  return leg;
 }
 
 /**
