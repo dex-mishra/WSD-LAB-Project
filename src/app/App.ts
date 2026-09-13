@@ -93,8 +93,9 @@ export class App {
     this.desktop = new DesktopControls(this.camera, this.rig, this.renderer.domElement);
     this.dashboard = new Dashboard(this.engine);
     this.scene.add(this.dashboard.group);
-    this.dashboard.group.position.set(4.8, 1.35, 1.8);
-    this.dashboard.group.rotation.y = -Math.PI / 3;
+    // Positioned in front outside the rooms, parallel to screen
+    this.dashboard.group.position.set(-6.8, 1.35, 5.8);
+    this.dashboard.group.rotation.y = 0;
 
     this.hud = new Hud({
       engine: this.engine,
