@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Food Manufacturing VR Digital Twin</title>
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- Boot / title overlay, shown before entering the scene -->
+    <div id="boot-overlay">
+      <div class="boot-card">
+        <div class="boot-kicker">Industrial Engineering Case Study</div>
+        <h1>Small-Scale Food Manufacturing<br />Digital Twin</h1>
+        <p class="boot-sub">
+          Farm-to-consumer flow for a small food unit in India, focused on
+          inventory and cold-chain resilience.
+        </p>
+        <ul class="boot-facts">
+          <li><span class="tag tag-source">SOURCE</span> Post-harvest losses across 54 commodities valued at roughly &#8377;1.53 lakh crore/year (NABCONS/MoFPI, 2020&ndash;22).</li>
+          <li><span class="tag tag-source">SOURCE</span> Official baseline of 8,815 cold-storage facilities / 40.22 million MT capacity (as of 30 Jun 2025).</li>
+          <li><span class="tag tag-proposed">PROPOSED</span> All demo loss rates, prices, and shelf-life values are illustrative and editable.</li>
+        </ul>
+        <div class="boot-actions">
+          <button id="btn-start" class="btn btn-primary">Enter Digital Twin</button>
+          <span id="xr-status" class="xr-status">Checking VR support&hellip;</span>
+        </div>
+        <p class="boot-note">
+          Works in any modern browser. A headset with WebXR is optional and
+          requires HTTPS or localhost.
+        </p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

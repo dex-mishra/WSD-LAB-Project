@@ -1,0 +1,153 @@
+{
+  "status": "PROPOSED",
+  "note": "All numeric values below are PROPOSED illustrative demo parameters. They are NOT measured local factory data and must be calibrated with real data before being presented as evidence. See docs/DATA_STATUS.md.",
+  "units": {
+    "quantityReceived": "crates",
+    "quantityGood": "crates",
+    "quantityRejected": "crates",
+    "quantitySpoiled": "crates",
+    "arrivalTime": "clock (h)",
+    "timeInStorage": "h",
+    "temperatureExposure": "\u00b0C\u00b7h above 8\u00b0C",
+    "humidityExposure": "%RH\u00b7h dev.",
+    "capacityUsed": "crates",
+    "capacityAvailable": "crates",
+    "queueLength": "crates",
+    "ordersDue": "crates",
+    "inventoryDays": "days",
+    "estimatedLossValue": "\u20b9"
+  },
+  "assumptions": {
+    "cratePriceRupees": 1200,
+    "baselineLossRate": 0.22,
+    "targetLossRate": 0.08,
+    "coldRoomBaselineCapacity": 120,
+    "batchSize": 100
+  },
+  "scenarios": {
+    "baseline": {
+      "id": "baseline",
+      "name": "Baseline",
+      "status": "PROPOSED",
+      "summary": "Delayed supply, poor receiving flow, mixed expiry dates, weak temperature logging, and excess queueing.",
+      "flags": {
+        "fefo": false,
+        "shadePrecooling": false,
+        "demandMatched": false,
+        "uFlowLayout": false,
+        "sharedCooling": false,
+        "coldCapacityReduced": false,
+        "demandIncrease": false
+      },
+      "state": {
+        "quantityReceived": 100,
+        "quantityGood": 62,
+        "quantityRejected": 10,
+        "quantitySpoiled": 28,
+        "arrivalTime": 13.5,
+        "timeInStorage": 46,
+        "temperatureExposure": 210,
+        "humidityExposure": 60,
+        "capacityUsed": 118,
+        "capacityAvailable": 120,
+        "queueLength": 22,
+        "ordersDue": 70,
+        "inventoryDays": 6.5,
+        "estimatedLossValue": 33600
+      }
+    },
+    "demandIncrease": {
+      "id": "demandIncrease",
+      "name": "Demand Increase",
+      "status": "PROPOSED",
+      "summary": "Orders rise; available inventory falls; queue and spoilage risk rise because replenishment is not matched to demand.",
+      "flags": {
+        "fefo": false,
+        "shadePrecooling": false,
+        "demandMatched": false,
+        "uFlowLayout": false,
+        "sharedCooling": false,
+        "coldCapacityReduced": false,
+        "demandIncrease": true
+      },
+      "state": {
+        "quantityReceived": 100,
+        "quantityGood": 58,
+        "quantityRejected": 11,
+        "quantitySpoiled": 31,
+        "arrivalTime": 14.0,
+        "timeInStorage": 52,
+        "temperatureExposure": 240,
+        "humidityExposure": 68,
+        "capacityUsed": 120,
+        "capacityAvailable": 120,
+        "queueLength": 34,
+        "ordersDue": 110,
+        "inventoryDays": 3.2,
+        "estimatedLossValue": 37200
+      }
+    },
+    "coldCapacityDecrease": {
+      "id": "coldCapacityDecrease",
+      "name": "Cold-Capacity Decrease",
+      "status": "PROPOSED",
+      "summary": "One cold room becomes unavailable. Stock must be prioritised, shade/ZECC used, shared capacity rented, or intake rescheduled.",
+      "flags": {
+        "fefo": false,
+        "shadePrecooling": false,
+        "demandMatched": false,
+        "uFlowLayout": false,
+        "sharedCooling": false,
+        "coldCapacityReduced": true,
+        "demandIncrease": false
+      },
+      "state": {
+        "quantityReceived": 100,
+        "quantityGood": 48,
+        "quantityRejected": 12,
+        "quantitySpoiled": 40,
+        "arrivalTime": 13.5,
+        "timeInStorage": 58,
+        "temperatureExposure": 320,
+        "humidityExposure": 74,
+        "capacityUsed": 60,
+        "capacityAvailable": 60,
+        "queueLength": 41,
+        "ordersDue": 70,
+        "inventoryDays": 5.0,
+        "estimatedLossValue": 48000
+      }
+    },
+    "improved": {
+      "id": "improved",
+      "name": "Improved State",
+      "status": "PROPOSED",
+      "summary": "FEFO, ABC prioritisation, shade/pre-cooling, demand-matched procurement, clean U-flow, and shared/asset-light cooling reduce avoidable loss.",
+      "flags": {
+        "fefo": true,
+        "shadePrecooling": true,
+        "demandMatched": true,
+        "uFlowLayout": true,
+        "sharedCooling": true,
+        "coldCapacityReduced": false,
+        "demandIncrease": false
+      },
+      "state": {
+        "quantityReceived": 100,
+        "quantityGood": 88,
+        "quantityRejected": 6,
+        "quantitySpoiled": 6,
+        "arrivalTime": 10.5,
+        "timeInStorage": 18,
+        "temperatureExposure": 40,
+        "humidityExposure": 18,
+        "capacityUsed": 74,
+        "capacityAvailable": 150,
+        "queueLength": 5,
+        "ordersDue": 84,
+        "inventoryDays": 4.5,
+        "estimatedLossValue": 8640
+      }
+    }
+  }
+}
