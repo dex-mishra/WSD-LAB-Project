@@ -666,5 +666,97 @@ export function createRefrigeratedTruck(opts: { cabColor?: number; cargoColor?: 
   return group;
 }
 
+export interface AirArrowOptions {
+  step: string;
+  purpose: string;
+  colorHex?: number;
+  widthM?: number;
+}
 
+/**
+ * Creates a floating 3D air arrow mesh with embossed text and purpose description
+ * rendered onto a crisp canvas texture.
+ */
+export function makeAirArrowMesh(opts: AirArrowOptions): THREE.Mesh {
+  const widthM = opts.widthM ?? 3.2;
+  const colorHex = opts.colorHex ?? 0x2a78a8;
+  const colorStr = "#" + colorHex.toString(16).padStart(6, "0");
 
+  const w = 1024;
+  const h = 420;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const topY = 70;
+  const arrowH = 260;
+  const bodyEnd = 760;
+  const headTip = 980;
+  const headTop = 20;
+  const headBottom = 380;
+
+  // Arrow outline / background fill
+  ctx.beginPath();
+  ctx.moveTo(30, topY);
+  ctx.lineTo(bodyEnd, topY);
+  ctx.lineTo(bodyEnd, headTop);
+  ctx.lineTo(headTip, topY + arrowH / 2);
+  ctx.lineTo(bodyEnd, headBottom);
+  ctx.lineTo(bodyEnd, topY + arrowH);
+  ctx.lineTo(30, topY + arrowH);
+  ctx.closePath();
+
+  ctx.fillStyle = "rgba(10, 24, 38, 0.94)";
+  ctx.fill();
+
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = colorStr;
+  ctx.stroke();
+
+  // Left accent bar
+  ctx.fillStyle = colorStr;
+  ctx.fillRect(30, topY, 18, arrowH);
+
+  // Chevron marker
+  ctx.beginPath();
+  ctx.moveTo(bodyEnd - 40, topY + 40);
+  ctx.lineTo(bodyEnd + 50, topY + arrowH / 2);
+  ctx.lineTo(bodyEnd - 40, topY + arrowH - 40);
+  ctx.lineWidth = 16;
+  ctx.strokeStyle = colorStr;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.stroke();
+
+  // Step title (Bold accent)
+  ctx.font = "800 46px 'Segoe UI', system-ui, sans-serif";
+  ctx.fillStyle = colorStr;
+  ctx.fillText(opts.step, 65, topY + 68);
+
+  // Purpose description (Crisp white)
+  ctx.font = "600 30px 'Segoe UI', system-ui, sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(`PURPOSE: ${opts.purpose}`, 65, topY + 145);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 16;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+
+  const aspect = h / w;
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: true,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(widthM, widthM * aspect), mat);
+  mesh.renderOrder = 3;
+  return mesh;
+}
