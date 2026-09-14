@@ -119,7 +119,8 @@ export class Dashboard {
     // Row 2: Queue Length & Temp Excursion
     const queueBad = snap.state.queueLength > 20;
     drawKpiCard(ctx, col1X, startY + 180, (colW - 20) / 2, 115, "QUEUE BACKLOG", `${snap.state.queueLength} crates`, queueBad ? "#f4c542" : "#ffffff", queueBad ? "Bottleneck delay" : "Flow normal");
-    drawKpiCard(ctx, col1X + (colW - 20) / 2 + 20, startY + 180, (colW - 20) / 2, 115, "TEMP EXCURSION", `${snap.state.temperatureExposure} °C·h`, snap.state.temperatureExposure > 100 ? "#f0958a" : "#7fd6a0", "Thermal exposure");
+    const tempExcursionC = (snap.state.temperatureExposure / 4).toFixed(1);
+    drawKpiCard(ctx, col1X + (colW - 20) / 2 + 20, startY + 180, (colW - 20) / 2, 115, "TEMP EXCURSION", `+${tempExcursionC} °C (${snap.state.temperatureExposure} °C·h)`, snap.state.temperatureExposure > 5 ? "#f0958a" : "#7fd6a0", "Thermal exposure");
 
     // Row 3: Cold Storage Capacity utilization bar
     const capPct = Math.round((snap.state.capacityUsed / Math.max(1, snap.state.capacityAvailable)) * 100);

@@ -826,7 +826,7 @@ export class MobileApp {
           </div>
         </div>
         <div style="font-size:0.74rem; color:var(--text-secondary); line-height:1.45;">
-          Unloading directly onto the apron under the cantilever weather canopy cuts field heat exposure from <b>210 °C·h down to 38 °C·h</b>, protecting produce shelf-life before entering Cleanroom Flume Wash.
+          Unloading directly onto the apron under the cantilever weather canopy cuts field heat exposure from <b>+3.6 °C (14.2 °C·h) down to +0.3 °C (1.2 °C·h)</b>, protecting produce shelf-life before entering Cleanroom Flume Wash.
         </div>
       </div>
     `;

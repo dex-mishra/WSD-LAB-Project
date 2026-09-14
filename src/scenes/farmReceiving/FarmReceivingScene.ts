@@ -996,7 +996,7 @@ export class FarmReceivingScene extends SceneModule {
     intakeBuilding.add(dockSign);
 
     // Digital Temperature Excursion / Field Heat Status Board mounted on wall
-    this.tempPanel = label("FIELD HEAT STATUS\n~32°C · EXCURSION 210", 3.2, {
+    this.tempPanel = label("FIELD HEAT STATUS\n~32°C · EXCURSION +3.6°C", 3.2, {
       bg: "#b23a2b",
       fontSize: 48,
       width: 600,
@@ -1512,9 +1512,10 @@ export class FarmReceivingScene extends SceneModule {
     this.shadeGroup.visible = shaded;
 
     // Temperature Excursion Display Board
+    const tempExcursionC = (state.temperatureExposure / 4).toFixed(1);
     const tempText = shaded
-      ? `PRE-COOLED STATE\n~14°C · EXCURSION: ${state.temperatureExposure}`
-      : `FIELD HEAT WARNING\n~32°C · EXCURSION: ${state.temperatureExposure}`;
+      ? `PRE-COOLED STATE\n~14°C · EXCURSION: +${tempExcursionC}°C (${state.temperatureExposure} °C·h)`
+      : `FIELD HEAT WARNING\n~32°C · EXCURSION: +${tempExcursionC}°C (${state.temperatureExposure} °C·h)`;
     this.updateLabel(this.tempPanel, tempText, shaded ? "#2a78a8" : "#b23a2b");
 
     // Intake Queue Display Board

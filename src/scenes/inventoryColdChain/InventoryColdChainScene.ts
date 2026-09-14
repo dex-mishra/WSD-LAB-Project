@@ -642,9 +642,10 @@ export class InventoryColdChainScene extends SceneModule {
     }
 
     // Update Digital Telemetry Displays
+    const tempExcursionC = (state.temperatureExposure / 4).toFixed(1);
     const tempValue = flags.shadePrecooling
-      ? `ALL CHAMBERS: 3.8°C\nExcursion: ${state.temperatureExposure} °C·h (OPTIMAL)`
-      : `ALL CHAMBERS: 9.4°C\nExcursion: ${state.temperatureExposure} °C·h (EXCURSION)`;
+      ? `ALL CHAMBERS: 3.8°C\nExcursion: +${tempExcursionC}°C (${state.temperatureExposure} °C·h)`
+      : `ALL CHAMBERS: 9.4°C\nExcursion: +${tempExcursionC}°C (${state.temperatureExposure} °C·h)`;
     const tempBg = flags.shadePrecooling ? "#104e8b" : "#b23a2b";
     this.retexture(this.tempDisplayMesh, tempValue, tempBg, 220);
 
