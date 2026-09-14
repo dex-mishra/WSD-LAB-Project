@@ -3,10 +3,11 @@ import type { SceneKey } from "../app/palette";
 export interface CutsceneZoneConfig {
   zoneNumber: string;
   title: string;
+  hindiTitle: string;
   subtitle: string;
   objective: string;
   badge: string;
-  kanji: string;
+  devanagariStamp: string;
   metrics: { label: string; value: string }[];
   colors: {
     primary: string;
@@ -23,10 +24,11 @@ export const CUTSCENE_ZONES: Record<SceneKey, CutsceneZoneConfig> = {
   farmReceiving: {
     zoneNumber: "ZONE 01",
     title: "FARMLAND HARVEST & INTAKE",
+    hindiTitle: "कृषि उपार्जन एवं प्राथमिक आवक",
     subtitle: "SOLAR SHADE PRE-COOLING · WEIGHBRIDGE AUDIT · FPO TRACEABILITY",
     objective: "Direct field heat mitigation & rapid crate staging under cantilever weather canopy",
     badge: "GATE LOGISTICS 01",
-    kanji: "収穫", // Harvest
+    devanagariStamp: "उपार्जन",
     metrics: [
       { label: "FIELD HEAT", value: "~32°C → 14°C" },
       { label: "INTAKE BATCH", value: "100 Crates" },
@@ -45,10 +47,11 @@ export const CUTSCENE_ZONES: Record<SceneKey, CutsceneZoneConfig> = {
   processingPackaging: {
     zoneNumber: "ZONE 02",
     title: "CLEANROOM FLUME & PACKAGING",
+    hindiTitle: "खाद्य शोधन एवं स्वच्छ पैकेजिंग",
     subtitle: "TRIPLE WATER FLUME · PAA IMMERSION · MODIFIED ATMOSPHERE SEAL",
     objective: "Decontaminate produce surfaces and seal with nitrogen gas flush to inhibit aerobic spoilage",
     badge: "CLEANROOM BAY 02",
-    kanji: "洗装", // Wash & Pack
+    devanagariStamp: "प्रसंस्करण",
     metrics: [
       { label: "FLUME WATER", value: "4.0°C chilled" },
       { label: "PAA RESIDUAL", value: "80 PPM" },
@@ -67,10 +70,11 @@ export const CUTSCENE_ZONES: Record<SceneKey, CutsceneZoneConfig> = {
   inventoryColdChain: {
     zoneNumber: "ZONE 03",
     title: "3-CHAMBER INDUSTRIAL COLD STORE",
+    hindiTitle: "औद्योगिक शीतगृह एवं तापमान नियंत्रण",
     subtitle: "COOLBOT HYBRID COOLING · MULTI-BAY FEFO RACKS · ZERO THERMAL EXCURSION",
     objective: "Safeguard high-value perishables with precision temperature zones and automated shelf-life indexing",
     badge: "COLD COMPLEX 03",
-    kanji: "保冷", // Cold Preservation
+    devanagariStamp: "शीतगृह",
     metrics: [
       { label: "CHAMBERS", value: "A / B / C / Dock" },
       { label: "STORAGE TEMP", value: "0.8°C to 3.8°C" },
@@ -89,10 +93,11 @@ export const CUTSCENE_ZONES: Record<SceneKey, CutsceneZoneConfig> = {
   dispatchMarket: {
     zoneNumber: "ZONE 04",
     title: "DISPATCH DOCK & MANDI HUB",
+    hindiTitle: "मंडी विपणन एवं प्रशीतित प्रेषण",
     subtitle: "REEFER FLEET LOGISTICS · e-NAM APMC TERMINAL · WAREHOUSE RECEIPT FINANCE",
     objective: "Eliminate distress sales via real-time market price discovery and cold reefer truck dispatch",
     badge: "MARKET TERMINAL 04",
-    kanji: "流通", // Distribution & Market Flow
+    devanagariStamp: "मंडी",
     metrics: [
       { label: "DAILY DISPATCH", value: "84 Crates" },
       { label: "MANDI PRICE", value: "₹42/kg optimal" },
@@ -381,9 +386,9 @@ export class CutsceneEngine {
         </button>
       </div>
 
-      <!-- Giant Kanji Watermark -->
+      <!-- Giant Hindi Devanagari Calligraphy Watermark -->
       <div class="cutscene-watermark" style="color: ${config.colors.secondary}">
-        ${config.kanji}
+        ${config.devanagariStamp}
       </div>
 
       <!-- Central Mission Title Card -->
@@ -393,6 +398,10 @@ export class CutsceneEngine {
           <span>${config.badge}</span>
           <span class="badge-sep">/</span>
           <span>${config.zoneNumber}</span>
+        </div>
+
+        <div class="cutscene-hindi-tag" style="color: ${config.colors.secondary}">
+          ${config.hindiTitle}
         </div>
 
         <h1 class="cutscene-title">${config.title}</h1>
