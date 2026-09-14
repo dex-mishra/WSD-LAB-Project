@@ -1,11 +1,14 @@
 :root {
-  --navy: #17324d;
-  --green: #2e7d32;
-  --yellow: #f4c542;
-  --cream: #f7f5ee;
-  --red: #b23a2b;
-  --coolblue: #2a78a8;
-  --ink: #0e1c2b;
+  --navy: #1e4d2b;
+  --green: #1e4d2b;
+  --yellow: #e8930c;
+  --cream: #fff7e8;
+  --red: #b91c1c;
+  --coolblue: #0f766e;
+  --ink: #1c1917;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
 }
 
 * {
@@ -18,10 +21,9 @@ body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  background: #0b1622;
+  background: #141210;
   color: var(--cream);
-  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial,
-    sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -44,60 +46,77 @@ body {
   justify-content: center;
   padding: 24px;
   background: radial-gradient(
-      1200px 800px at 70% -10%,
-      rgba(42, 120, 168, 0.35),
+      900px 500px at 80% -10%,
+      rgba(232, 147, 12, 0.22),
       transparent 60%
     ),
-    linear-gradient(160deg, #0f2033 0%, #0b1622 60%, #0a1420 100%);
+    radial-gradient(700px 500px at 10% 110%, rgba(30, 77, 43, 0.5), transparent 60%),
+    linear-gradient(160deg, #211c16 0%, #141210 60%, #0e0c0a 100%);
 }
 
 .boot-card {
-  max-width: 640px;
+  max-width: 520px;
   width: 100%;
-  background: rgba(23, 50, 77, 0.72);
-  border: 1px solid rgba(244, 197, 66, 0.25);
-  border-radius: 18px;
-  padding: 34px 34px 28px;
-  backdrop-filter: blur(6px);
+  background: #fff7e8;
+  color: var(--ink);
+  border: 1px solid #e9dfc9;
+  border-radius: 22px;
+  padding: 30px 30px 24px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
-.boot-kicker {
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 12px;
-  color: var(--yellow);
-  margin-bottom: 10px;
+.boot-brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: #1e4d2b;
+  margin-bottom: 8px;
 }
+.boot-leaf { color: #c2410c; margin-right: 6px; }
 
 .boot-card h1 {
-  margin: 0 0 12px;
-  font-size: 30px;
-  line-height: 1.18;
-  color: #fff;
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #1c1917;
 }
 
 .boot-sub {
-  margin: 0 0 18px;
-  color: #cdd8e3;
-  font-size: 15px;
+  margin: 0 0 16px;
+  color: #57534e;
+  font-size: 14px;
   line-height: 1.5;
 }
 
-.boot-facts {
-  list-style: none;
-  margin: 0 0 22px;
-  padding: 0;
+.boot-stats {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
 }
+.boot-stat {
+  background: #1c1917;
+  color: #faf5ea;
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+}
+.boot-stat b { display: block; font-family: var(--font-mono); font-size: 17px; color: #ffd88a; }
+.boot-stat span { font-size: 11px; opacity: 0.8; }
 
-.boot-facts li {
-  font-size: 13px;
-  line-height: 1.45;
-  color: #dbe4ec;
-  padding-left: 2px;
+.boot-actions { display: flex; gap: 10px; }
+.btn-big { flex: 1; padding: 14px; font-size: 16px; }
+.btn-ghost {
+  background: transparent;
+  color: #1c1917;
+  border: 1.5px solid #d6cdb8;
+  border-radius: 10px;
+  padding: 14px 18px;
 }
+.boot-xr { margin-top: 12px; }
 
 .tag {
   display: inline-block;
@@ -142,8 +161,8 @@ body {
   transform: translateY(1px);
 }
 .btn-primary {
-  background: var(--yellow);
-  color: var(--ink);
+  background: #1e4d2b;
+  color: #fff7e8;
 }
 .btn-primary:hover {
   filter: brightness(1.05);
