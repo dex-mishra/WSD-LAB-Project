@@ -1565,7 +1565,7 @@ export class MobileApp {
       }
     });
 
-    // 3D Scene Selector Chips
+    // 3D Scene Selector Chips with Dynamic Paint Brush Transition
     const sceneChips = this.container.querySelectorAll(".scene-chip");
     sceneChips.forEach((chip) => {
       chip.addEventListener("click", () => {
@@ -1574,6 +1574,16 @@ export class MobileApp {
           this.activeMiniSceneKey = s;
           sceneChips.forEach((c) => c.classList.remove("active"));
           chip.classList.add("active");
+
+          // Trigger paintbrush sweep animation across the 3D viewport
+          const vport = this.container.querySelector("#home-3d-viewport");
+          if (vport) {
+            const wipe = document.createElement("div");
+            wipe.className = "mobile-brush-wipe";
+            vport.appendChild(wipe);
+            setTimeout(() => wipe.remove(), 420);
+          }
+
           if (this.mini3D) {
             this.mini3D.setScene(s);
           }
