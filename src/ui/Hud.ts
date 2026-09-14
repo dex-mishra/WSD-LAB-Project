@@ -188,7 +188,15 @@ export class Hud {
     rows.push(metric("Spoiled", `${snap.state.quantitySpoiled} crates`, "bad"));
     rows.push(metric("Rejected", `${snap.state.quantityRejected} crates`, "bad"));
     rows.push(metric("Queue", `${snap.state.queueLength} crates`, snap.state.queueLength > 20 ? "bad" : ""));
-    rows.push(metric("Temp excursion", `${snap.state.temperatureExposure} °C·h`, "bad"));
+    const tempExcursionC = (snap.state.temperatureExposure / 4).toFixed(1);
+    const isTempGood = snap.state.temperatureExposure <= 4;
+    rows.push(
+      metric(
+        "Temp excursion",
+        `+${tempExcursionC} °C (${snap.state.temperatureExposure} °C·h)`,
+        isTempGood ? "good" : "bad"
+      )
+    );
     rows.push(metric("Capacity", `${snap.state.capacityUsed}/${snap.state.capacityAvailable}`));
     rows.push(metric("Orders due", `${snap.state.ordersDue} crates`));
     rows.push(metric("Inventory", `${snap.state.inventoryDays} days`));

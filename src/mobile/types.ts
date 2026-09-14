@@ -123,10 +123,19 @@ export interface ProcessTest {
   provenance: SourceProvenance;
 }
 
+export type MiniSceneKey = "farmReceiving" | "processingPackaging" | "inventoryColdChain" | "dispatchMarket";
+
 export interface InventoryChamber {
   id: string;
   name: string;
-  type: "CoolBot Walk-in" | "Zero Energy Cool Chamber (ZECC)" | "Solar Conduction Dry Store" | "Ambient Buffer";
+  type:
+    | "Pre-Cooling Intake"
+    | "High-Bay FEFO Cold Storage"
+    | "Finished Goods & Blast Chilling"
+    | "CoolBot Walk-in"
+    | "Zero Energy Cool Chamber (ZECC)"
+    | "Solar Conduction Dry Store"
+    | "Ambient Buffer";
   tempC: number;
   targetTempC: string;
   humidityPct: number;

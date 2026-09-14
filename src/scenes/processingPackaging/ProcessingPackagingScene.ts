@@ -345,7 +345,7 @@ export class ProcessingPackagingScene extends SceneModule {
     jugSan.position.set(-9.8, 1.6, -4.65);
     washRoom.add(jugSan);
 
-    this.waterMonitor = label("WASH WATER: 5.2°C\nPAA: 65 PPM\nEXCURSION: +210°C·h", 1.4, {
+    this.waterMonitor = label("WASH WATER: 5.2°C\nPAA: 65 PPM\nEXCURSION: +1.4°C (+3.2°C·h)", 1.4, {
       fontSize: 34,
       width: 440,
       height: 220,
@@ -1432,7 +1432,7 @@ export class ProcessingPackagingScene extends SceneModule {
     } else {
       this.updateLabel(
         this.waterMonitor,
-        `WASH WATER: 5.2°C\nPAA: 65 PPM (SUB-OPTIMAL)\nEXCURSION: +210°C·h`,
+        `WASH WATER: 5.2°C\nPAA: 65 PPM (SUB-OPTIMAL)\nEXCURSION: +1.4°C (+3.2°C·h)`,
         { bg: "#0D47A1", fontSize: 34, width: 440, height: 220 }
       );
       this.flumeWaterMat.color.setHex(0x00bcd4);

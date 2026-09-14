@@ -1,7 +1,7 @@
 import { AudioVoiceEngine } from "./AudioVoiceEngine";
 import { AiAssistant } from "./AiAssistant";
 import { Mini3DViewer } from "./Mini3DViewer";
-import type { AppTab, EmployeeProfile, EmployeeRank, PlantAlert, WorkerGrievance } from "./types";
+import type { AppTab, EmployeeProfile, EmployeeRank, PlantAlert, WorkerGrievance, MiniSceneKey } from "./types";
 import {
   EMPLOYEE_PROFILES,
   MACHINES_DATA,
@@ -30,6 +30,7 @@ export class MobileApp {
   private voiceEngine: AudioVoiceEngine;
   private aiAssistant: AiAssistant;
   private mini3D: Mini3DViewer | null = null;
+  private activeMiniSceneKey: MiniSceneKey = "farmReceiving";
 
   private selectedMachineId: string = "MCH-05";
   private selectedTestId: string = "TEST-04";
@@ -199,14 +200,17 @@ export class MobileApp {
         <!-- Host Top Bar for Desktop Preview / Viewport Switching -->
         <div class="host-controls-bar">
           <div class="host-brand">
-            <span>🏭 Small-Scale Food Manufacturing Twin</span>
+            <span class="host-brand-icon">🏭</span>
+            <span class="host-brand-name">Small-Scale Food Manufacturing Twin</span>
             <span class="brand-badge">Mobile App UI</span>
           </div>
-          <div class="host-actions">
-            <button id="btn-toggle-frame" class="host-btn" title="Toggle smartphone bezel preview or full screen">
-              ${this.isFullScreenMode ? "📱 Smartphone Frame" : "🖥️ Full Screen View"}
+          <div class="host-action-center">
+            <button id="btn-toggle-frame" class="host-btn host-btn-display" title="Toggle smartphone bezel preview or full screen">
+              ${this.isFullScreenMode ? "📱 Smartphone Frame" : "💻 Full Screen View"}
             </button>
-            <button id="btn-open-3d-twin" class="host-btn active" title="Switch into interactive 3D WebXR Digital Twin">
+          </div>
+          <div class="host-action-right">
+            <button id="btn-open-3d-twin" class="host-btn host-btn-vr" title="Switch into interactive 3D WebXR Digital Twin">
               🥽 3D / VR Digital Twin
             </button>
           </div>
@@ -432,17 +436,29 @@ export class MobileApp {
 
       <!-- Interactive 3D Digital Twin Model Card -->
       <div class="mobile-card mini-3d-card">
-        <div class="card-header" style="margin-bottom:6px;">
-          <div class="card-title" style="color:#fff4dd;">
-            <span>🥽 3D Digital Twin Model</span>
-            <span class="prov-badge prov-source">INTERACTIVE</span>
+        <div class="card-header" style="margin-bottom:8px;">
+          <div>
+            <div class="card-title">
+              <span>Interactive 3D Plant Model</span>
+              <span class="prov-badge prov-source">LIVE TWIN</span>
+            </div>
+            <div class="card-subtitle">Select environment diorama or enter VR</div>
           </div>
-          <button class="btn-sm-outline" data-action="open-twin" style="color:#fff4dd; border-color:#2e4433;">
-            Full VR ➔
+          <button class="btn-sm-primary" data-action="open-twin">
+            Launch VR ➔
           </button>
         </div>
+
+        <!-- 4-Environment Scene Selector Chips -->
+        <div class="mini-3d-scene-selector">
+          <button class="scene-chip ${this.activeMiniSceneKey === "farmReceiving" ? "active" : ""}" data-scene="farmReceiving">1. Farm</button>
+          <button class="scene-chip ${this.activeMiniSceneKey === "processingPackaging" ? "active" : ""}" data-scene="processingPackaging">2. Clean</button>
+          <button class="scene-chip ${this.activeMiniSceneKey === "inventoryColdChain" ? "active" : ""}" data-scene="inventoryColdChain">3. Cold</button>
+          <button class="scene-chip ${this.activeMiniSceneKey === "dispatchMarket" ? "active" : ""}" data-scene="dispatchMarket">4. Mandi</button>
+        </div>
+
         <div id="home-3d-viewport">
-          <div class="mini-3d-badge">↺ Drag to rotate plant · CoolBot room, conveyor & crates</div>
+          <div class="mini-3d-badge">↺ Drag / swipe to inspect environment in 3D</div>
         </div>
       </div>
 
@@ -506,7 +522,7 @@ export class MobileApp {
         this.mini3D.destroy();
         this.mini3D = null;
       }
-      this.mini3D = new Mini3DViewer(vport);
+      this.mini3D = new Mini3DViewer(vport, this.activeMiniSceneKey);
     } else if (this.mini3D) {
       this.mini3D.destroy();
       this.mini3D = null;
@@ -686,7 +702,7 @@ export class MobileApp {
     }, 600);
   }
 
-  // TAB 1: SUPPLY & DEMAND CHAIN
+  // TAB 1: SUPPLY & DEMAND CHAIN (FARM INTAKE & WEIGHBRIDGE)
   private renderSupplyTab(): string {
     const emp = this.getActiveEmployee();
     return `
@@ -695,10 +711,10 @@ export class MobileApp {
         <div class="card-header">
           <div>
             <div class="card-title">
-              <span>🌾 Demand-Side Procurement</span>
-              <span class="prov-badge prov-source">SOURCE</span>
+              <span>Farm Harvest & Procurement</span>
+              <span class="prov-badge prov-source">FARM GATE</span>
             </div>
-            <div class="card-subtitle">Active: ${emp.name} (Rank ${emp.rank}) • Zero-cost matching</div>
+            <div class="card-subtitle">Active: ${emp.name} (Rank ${emp.rank}) · Staggered intake slots</div>
           </div>
           <button class="btn-sm-outline" id="btn-explain-tab">✨ Explain</button>
         </div>
@@ -707,7 +723,7 @@ export class MobileApp {
           <div class="metric-pill">
             <span class="metric-pill-label">Active Orders Due</span>
             <span class="metric-pill-value">84 <span class="metric-pill-unit">crates</span></span>
-            <span class="metric-pill-nominal">Regional Mandi + Supermarkets</span>
+            <span class="metric-pill-nominal">Regional Mandi & Supermarkets</span>
           </div>
           <div class="metric-pill">
             <span class="metric-pill-label">Scheduled Inflow</span>
@@ -715,9 +731,54 @@ export class MobileApp {
             <span class="metric-pill-nominal">Staggered across 3 slots</span>
           </div>
         </div>
+      </div>
 
-        <div style="margin-top:10px; font-size:0.75rem; color:#475569; line-height:1.4;">
-          <b>Industrial Insight:</b> Coordinating delivery timing directly with smallholders (86% sector share) prevents single-day chamber overload and cuts waiting time in direct heat.
+      <!-- Drive-Over Weighbridge & Field IoT Microclimate -->
+      <div class="mobile-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              <span>Drive-Over Weighbridge & Field IoT</span>
+              <span class="prov-badge prov-source">VR TWIN SYNC</span>
+            </div>
+            <div class="card-subtitle">Tractor Trailer KA-04-TR-5021 · Direct Apron Dock</div>
+          </div>
+        </div>
+
+        <div class="metric-grid-3">
+          <div class="metric-pill">
+            <span class="metric-pill-label">Gross Weight</span>
+            <span class="metric-pill-value">4,820 <span class="metric-pill-unit">kg</span></span>
+            <span class="metric-pill-nominal">Tractor + Trailer</span>
+          </div>
+          <div class="metric-pill">
+            <span class="metric-pill-label">Tare Weight</span>
+            <span class="metric-pill-value">2,420 <span class="metric-pill-unit">kg</span></span>
+            <span class="metric-pill-nominal">Empty Rig</span>
+          </div>
+          <div class="metric-pill">
+            <span class="metric-pill-label">Net Payload</span>
+            <span class="metric-pill-value" style="color:var(--agri-green);">2,400 <span class="metric-pill-unit">kg</span></span>
+            <span class="metric-pill-nominal">100 Crates Verified</span>
+          </div>
+        </div>
+
+        <div class="metric-grid-3" style="margin-top:7px;">
+          <div class="metric-pill">
+            <span class="metric-pill-label">Field Temp</span>
+            <span class="metric-pill-value">28.4 <span class="metric-pill-unit">°C</span></span>
+            <span class="metric-pill-nominal">Pull-down req: 24°C</span>
+          </div>
+          <div class="metric-pill">
+            <span class="metric-pill-label">Field Humidity</span>
+            <span class="metric-pill-value">62 <span class="metric-pill-unit">%</span></span>
+            <span class="metric-pill-nominal">Solar PAR: 1,120</span>
+          </div>
+          <div class="metric-pill">
+            <span class="metric-pill-label">Soil Moisture</span>
+            <span class="metric-pill-value">34 <span class="metric-pill-unit">%</span></span>
+            <span class="metric-pill-nominal">Drip Irrigated</span>
+          </div>
         </div>
       </div>
 
@@ -725,30 +786,29 @@ export class MobileApp {
       <div class="mobile-card">
         <div class="card-header">
           <div class="card-title">
-            <span>🚚 Staggered Intake Slots</span>
-            <span class="prov-badge prov-source">SOURCE</span>
+            <span>Staggered Intake Slots</span>
+            <span class="prov-badge prov-source">3 BATCHES TODAY</span>
           </div>
-          <span style="font-size:0.7rem; font-weight:700; color:var(--agri-green);">3 Batches Today</span>
         </div>
 
         ${SUPPLY_BATCHES_DATA.map(
           (b) => `
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px;">
+          <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:10px; padding:10px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.82rem; font-weight:700; color:var(--primary-navy);">${b.commodity}</span>
-              <span class="prov-badge ${b.demandMatched ? "prov-source" : "prov-proposed"}">
+              <span style="font-size:0.84rem; font-weight:700; color:var(--text-primary);">${b.commodity}</span>
+              <span class="prov-badge ${b.demandMatched ? "prov-source" : "prov-warn"}">
                 ${b.demandMatched ? "Demand Matched" : "Buffer Stock"}
               </span>
             </div>
-            <div style="font-size:0.72rem; color:#64748b; margin-top:2px;">
-              ${b.farmerOrFpo} • ${b.district}
+            <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">
+              ${b.farmerOrFpo} · ${b.district}
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.72rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.72rem; color:var(--text-primary);">
               <span>Slot: <b>${b.staggerSlot}</b></span>
               <span>Volume: <b>${b.quantityCrates} crates</b></span>
               <span>Gate Temp: <b>${b.farmGateTempC}°C</b></span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.68rem; color:#64748b;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.68rem; color:var(--text-muted);">
               <span>Vendor Score: ⭐ <b>${b.scorecardRating}/5.0</b></span>
               <span>Historical Rejection: <b>${b.rejectionHistoryPct}%</b></span>
             </div>
@@ -761,19 +821,18 @@ export class MobileApp {
       <div class="mobile-card">
         <div class="card-header">
           <div class="card-title">
-            <span>🏗️ Dock-to-Chamber Layout</span>
-            <span class="prov-badge prov-source">SOURCE</span>
+            <span>Dock-to-Chamber Thermal Efficiency</span>
+            <span class="prov-badge prov-source">COLD CHAIN</span>
           </div>
         </div>
-        <div style="font-size:0.75rem; color:#475569; line-height:1.4;">
-          Receiving point positioned directly adjacent to the CoolBot cold chamber and shade netting.
-          <b>Field heat exposure cut from 210 °C·h down to 40 °C·h</b>, protecting delicate produce from premature decay.
+        <div style="font-size:0.74rem; color:var(--text-secondary); line-height:1.45;">
+          Unloading directly onto the apron under the cantilever weather canopy cuts field heat exposure from <b>+3.6 °C (14.2 °C·h) down to +0.3 °C (1.2 °C·h)</b>, protecting produce shelf-life before entering Cleanroom Flume Wash.
         </div>
       </div>
     `;
   }
 
-  // TAB 2: INVENTORY & COLD STORAGE
+  // TAB 2: INVENTORY & 3-CHAMBER COLD COMPLEX
   private renderInventoryTab(): string {
     return `
       <!-- Live Storage Chamber Conditions -->
@@ -781,25 +840,25 @@ export class MobileApp {
         <div class="card-header">
           <div>
             <div class="card-title">
-              <span>❄️ Storage Chambers Telemetry</span>
-              <span class="prov-badge prov-source">SOURCE</span>
+              <span>3-Chamber Cold Complex</span>
+              <span class="prov-badge prov-source">VR TWIN SYNC</span>
             </div>
-            <div class="card-subtitle">IoT Loggers • 8,815 facilities national benchmark</div>
+            <div class="card-subtitle">Chamber A (Pre-Cooling), B (High-Bay), C (Finished Goods)</div>
           </div>
           <button class="btn-sm-outline" id="btn-explain-tab">✨ Explain</button>
         </div>
 
         ${INVENTORY_CHAMBERS.map(
           (c) => `
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px;">
+          <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:10px; padding:10px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.84rem; font-weight:700; color:var(--primary-navy);">${c.name}</span>
-              <span class="prov-badge ${c.assetTier === "Zero Cost" ? "prov-proposed" : "prov-source"}">${c.assetTier}</span>
+              <span style="font-size:0.84rem; font-weight:700; color:var(--text-primary);">${c.name}</span>
+              <span class="prov-badge ${c.assetTier === "Zero Cost" ? "prov-warn" : "prov-source"}">${c.assetTier}</span>
             </div>
             <div class="metric-grid-3">
               <div class="metric-pill">
                 <span class="metric-pill-label">Temp</span>
-                <span class="metric-pill-value">${c.tempC} <span class="metric-pill-unit">°C</span></span>
+                <span class="metric-pill-value" style="color:var(--cryo-cyan);">${c.tempC} <span class="metric-pill-unit">°C</span></span>
                 <span class="metric-pill-nominal">${c.targetTempC}</span>
               </div>
               <div class="metric-pill">
@@ -808,14 +867,15 @@ export class MobileApp {
                 <span class="metric-pill-nominal">${c.targetHumidityPct}</span>
               </div>
               <div class="metric-pill">
-                <span class="metric-pill-label">Capacity</span>
+                <span class="metric-pill-label">Occupancy</span>
                 <span class="metric-pill-value">${c.occupiedCrates}/${c.capacityCrates}</span>
                 <span class="metric-pill-nominal">crates</span>
               </div>
             </div>
-            <div class="progress-bar-wrap">
-              <div class="progress-bar-fill ${c.tempC > 10 && c.type.includes("CoolBot") ? "fill-red" : "fill-blue"}"
-                   style="width: ${(c.occupiedCrates / c.capacityCrates) * 100}%"></div>
+            <div style="width:100%; height:4px; background:rgba(255,255,255,0.06); border-radius:2px; margin-top:8px; overflow:hidden;">
+              <div style="width:${(c.occupiedCrates / c.capacityCrates) * 100}%; height:100%; background:${
+            c.tempC > 10 ? "var(--warn-amber)" : "var(--cryo-cyan)"
+          }; border-radius:2px;"></div>
             </div>
           </div>
         `
@@ -826,37 +886,36 @@ export class MobileApp {
       <div class="mobile-card">
         <div class="card-header">
           <div class="card-title">
-            <span>🏷️ FEFO Rotation Rack</span>
-            <span class="prov-badge prov-source">SOURCE</span>
+            <span>FEFO High-Bay Rotation Rack</span>
+            <span class="prov-badge prov-source">FIRST-EXPIRED</span>
           </div>
-          <span style="font-size:0.7rem; font-weight:700; color:var(--accent-gold);">First Expired, First Out</span>
         </div>
-        <div style="font-size:0.72rem; color:#64748b; margin-bottom:8px;">
+        <div style="font-size:0.72rem; color:var(--text-secondary); margin-bottom:8px;">
           ABC classification ensures fast-spoiling produce (A) is prioritized in cooling zones over durable stock (C).
         </div>
 
         ${FEFO_CRATES_DATA.map(
           (item) => `
-          <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid ${
+          <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-left:3px solid ${
             item.status === "critical"
               ? "var(--alert-red)"
               : item.status === "expiring_soon"
-              ? "var(--accent-gold)"
+              ? "var(--warn-amber)"
               : "var(--agri-green)"
           }; border-radius:8px; padding:8px 10px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:0.8rem; font-weight:700; color:var(--text-main);">${item.commodity}</span>
-              <span style="font-size:0.68rem; font-weight:800; background:#f1f5f9; padding:2px 6px; border-radius:4px;">
-                Cat ${item.abcCategory} • ${item.crateQuantity} Crates
+              <span style="font-size:0.82rem; font-weight:700; color:var(--text-primary);">${item.commodity}</span>
+              <span style="font-size:0.68rem; font-weight:700; background:rgba(255,255,255,0.06); color:var(--text-secondary); padding:2px 6px; border-radius:4px;">
+                Cat ${item.abcCategory} · ${item.crateQuantity} Crates
               </span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.72rem; color:#64748b;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.72rem; color:var(--text-secondary);">
               <span>Lot: <b>${item.batchLot}</b></span>
               <span>Expires: <b>${item.expiryDate}</b></span>
               <span style="color:${
                 item.remainingShelfLifeDays <= 2 ? "var(--alert-red)" : "var(--agri-green)"
-              }; font-weight:800;">
-                ${item.remainingShelfLifeDays} days left
+              }; font-weight:700;">
+                ${item.remainingShelfLifeDays}d left
               </span>
             </div>
           </div>
@@ -1286,38 +1345,38 @@ export class MobileApp {
           </div>
           <div class="sheet-body">
             <!-- Vocal Playback Action -->
-            <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:12px; margin-bottom:12px;">
+            <div style="background:var(--tech-blue-dim); border:1px solid rgba(56, 189, 248, 0.25); border-radius:12px; padding:12px; margin-bottom:12px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.8rem; font-weight:700; color:var(--primary-navy);">
+                <span style="font-size:0.82rem; font-weight:700; color:var(--text-primary);">
                   🎙️ Vocal Audio Explanation
                 </span>
                 <button class="btn-sm-primary" id="btn-ai-speak">
                   <span>${speechState.isPlaying ? "⏹ Stop Audio" : "🔊 Read Vocally"}</span>
                 </button>
               </div>
-              <div style="font-size:0.72rem; color:#0369a1; margin-top:4px;">
-                Uses Web Speech API to answer and explain everything audibly for floor employees and executives.
+              <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:4px;">
+                Uses Web Speech Synthesis to explain telemetry and SOPs audibly for field operators.
               </div>
             </div>
 
             <!-- Context Explanation Card -->
-            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:14px; margin-bottom:12px;">
-              <div style="font-size:0.92rem; font-weight:800; color:var(--primary-navy); margin-bottom:6px;">
+            <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px; margin-bottom:12px;">
+              <div style="font-size:0.92rem; font-weight:800; color:var(--text-primary); margin-bottom:6px;">
                 ${explanation.title}
               </div>
-              <div style="font-size:0.76rem; color:#334155; line-height:1.45; margin-bottom:10px;">
+              <div style="font-size:0.76rem; color:var(--text-secondary); line-height:1.45; margin-bottom:10px;">
                 ${explanation.summary}
               </div>
-              <ul style="margin:0; padding-left:18px; font-size:0.74rem; color:#475569; line-height:1.5;">
+              <ul style="margin:0; padding-left:18px; font-size:0.74rem; color:var(--text-secondary); line-height:1.5;">
                 ${explanation.bulletPoints.map((bp) => `<li>${bp}</li>`).join("")}
               </ul>
-              <div style="background:#f8fafc; border-left:3px solid var(--agri-green); border-radius:4px; padding:8px 10px; margin-top:10px; font-size:0.72rem; color:#1e293b;">
+              <div style="background:rgba(16, 185, 129, 0.08); border-left:3px solid var(--agri-green); border-radius:4px; padding:8px 10px; margin-top:10px; font-size:0.72rem; color:var(--text-primary);">
                 <b>Recommended Next Step:</b> ${explanation.recommendedAction}
               </div>
             </div>
 
             <!-- Suggested Prompt Chips -->
-            <div style="font-size:0.75rem; font-weight:700; color:var(--text-main);">Suggested Inquiries:</div>
+            <div style="font-size:0.75rem; font-weight:700; color:var(--text-primary); margin-bottom:6px;">Suggested Inquiries:</div>
             <div class="ai-chips-wrap">
               <span class="ai-chip" data-chip="coolbot">Why does CoolBot save 40% energy?</span>
               <span class="ai-chip" data-chip="fefo">Explain FEFO vs FIFO spoilage</span>
@@ -1333,7 +1392,7 @@ export class MobileApp {
               <button id="btn-ai-query-submit" class="ai-send-btn">➔</button>
             </div>
             <div id="ai-mic-hint" class="mic-hint">Tap ◉ and speak — your words appear here for the AI.</div>
-            <div id="ai-query-response" style="display:none; margin-top:12px; padding:10px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; font-size:0.75rem; color:#1c1917; line-height:1.45;"></div>
+            <div id="ai-query-response" style="display:none; margin-top:12px; padding:10px; background:var(--bg-surface-active); border:1px solid var(--border-strong); border-radius:8px; font-size:0.75rem; color:var(--text-primary); line-height:1.45;"></div>
           </div>
         </div>
       </div>
@@ -1372,7 +1431,7 @@ export class MobileApp {
             </div>
 
             <!-- Detailed Telemetry Metrics -->
-            <div style="font-size:0.8rem; font-weight:700; color:var(--primary-navy); margin-bottom:6px;">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary); margin-bottom:6px;">
               Live Sensor Telemetry
             </div>
             <div class="metric-grid-2">
@@ -1390,20 +1449,20 @@ export class MobileApp {
             </div>
 
             <!-- Digital SOP Walkthrough Checklist -->
-            <div style="font-size:0.8rem; font-weight:700; color:var(--primary-navy); margin:14px 0 6px;">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary); margin:14px 0 6px;">
               Digital Standard Operating Procedure (SOP)
             </div>
             ${m.sopSteps
               .map(
                 (sop) => `
-              <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:8px;">
-                <div style="font-size:0.78rem; font-weight:700; color:var(--primary-navy);">
+              <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:8px; padding:10px; margin-bottom:8px;">
+                <div style="font-size:0.78rem; font-weight:700; color:var(--text-primary);">
                   Step ${sop.step}: ${sop.title}
                 </div>
-                <div style="font-size:0.74rem; color:#475569; margin-top:2px;">
+                <div style="font-size:0.74rem; color:var(--text-secondary); margin-top:2px;">
                   ${sop.instruction}
                 </div>
-                <div style="font-size:0.68rem; color:#b45309; margin-top:4px; background:#fffbeb; padding:4px 8px; border-radius:4px;">
+                <div style="font-size:0.68rem; color:var(--warn-amber); margin-top:4px; background:var(--warn-amber-dim); padding:4px 8px; border-radius:4px;">
                   ⚠️ Safety Checklist: ${sop.safetyCheck}
                 </div>
               </div>
@@ -1412,10 +1471,10 @@ export class MobileApp {
               .join("")}
 
             <!-- Poka-Yoke Safeguards -->
-            <div style="font-size:0.8rem; font-weight:700; color:var(--primary-navy); margin:14px 0 6px;">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary); margin:14px 0 6px;">
               Poka-Yoke Error Proofing Safeguards
             </div>
-            <ul style="margin:0; padding-left:18px; font-size:0.74rem; color:#475569; line-height:1.45;">
+            <ul style="margin:0; padding-left:18px; font-size:0.74rem; color:var(--text-secondary); line-height:1.45;">
               ${m.pokaYokeGuides.map((g) => `<li>${g}</li>`).join("")}
             </ul>
 
@@ -1449,31 +1508,31 @@ export class MobileApp {
           </div>
           <div class="sheet-body">
             <!-- Test Capability Badge -->
-            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:12px; margin-bottom:12px;">
+            <div style="background:var(--agri-green-dim); border:1px solid rgba(16, 185, 129, 0.3); border-radius:12px; padding:12px; margin-bottom:12px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.84rem; font-weight:800; color:#166534;">
+                <span style="font-size:0.84rem; font-weight:800; color:var(--agri-green);">
                   Verified: ${t.status.toUpperCase()} (Cpk = ${t.cpk})
                 </span>
                 <span class="prov-badge prov-source">SOURCE</span>
               </div>
-              <div style="font-size:0.72rem; color:#15803d; margin-top:2px;">
+              <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">
                 Nominal Range: <b>${t.nominalRange} ${t.unit}</b>
               </div>
             </div>
 
             <!-- Testing Procedure -->
-            <div style="font-size:0.8rem; font-weight:700; color:var(--primary-navy); margin-bottom:4px;">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary); margin-bottom:4px;">
               Standard Testing Procedure
             </div>
-            <div style="font-size:0.75rem; color:#334155; line-height:1.45; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.45; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:8px; padding:10px;">
               ${t.procedure}
             </div>
 
             <!-- Corrective Action Protocol -->
-            <div style="font-size:0.8rem; font-weight:700; color:var(--primary-navy); margin:12px 0 4px;">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary); margin:12px 0 4px;">
               Corrective Protocol if Out-of-Spec
             </div>
-            <div style="font-size:0.75rem; color:#991b1b; line-height:1.45; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px;">
+            <div style="font-size:0.75rem; color:var(--alert-red); line-height:1.45; background:var(--alert-red-dim); border:1px solid rgba(239, 68, 68, 0.3); border-radius:8px; padding:10px;">
               ${t.correctiveAction}
             </div>
 
@@ -1504,6 +1563,22 @@ export class MobileApp {
       if (this.onOpenVRDigitalTwin) {
         this.onOpenVRDigitalTwin();
       }
+    });
+
+    // 3D Scene Selector Chips
+    const sceneChips = this.container.querySelectorAll(".scene-chip");
+    sceneChips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const s = chip.getAttribute("data-scene") as MiniSceneKey;
+        if (s) {
+          this.activeMiniSceneKey = s;
+          sceneChips.forEach((c) => c.classList.remove("active"));
+          chip.classList.add("active");
+          if (this.mini3D) {
+            this.mini3D.setScene(s);
+          }
+        }
+      });
     });
 
     // Rank selector open
