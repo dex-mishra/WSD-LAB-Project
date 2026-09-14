@@ -6,6 +6,7 @@ import { InteractionManager } from "../interaction/InteractionManager";
 import { DesktopControls } from "./DesktopControls";
 import { Dashboard } from "../ui/Dashboard";
 import { Hud } from "../ui/Hud";
+import { CutsceneEngine } from "../ui/CutsceneEngine";
 import type { SceneModule } from "../scenes/SceneModule";
 import { FarmReceivingScene } from "../scenes/farmReceiving/FarmReceivingScene";
 import { ProcessingPackagingScene } from "../scenes/processingPackaging/ProcessingPackagingScene";
@@ -28,6 +29,7 @@ export class App {
   readonly interaction: InteractionManager;
   readonly dashboard: Dashboard;
   readonly desktop: DesktopControls;
+  readonly cutscene: CutsceneEngine;
   private readonly hud: Hud;
 
   private scenes: Record<SceneKey, SceneModule>;
@@ -97,16 +99,19 @@ export class App {
     this.dashboard.group.position.set(-6.8, 1.35, 5.8);
     this.dashboard.group.rotation.y = 0;
 
+    this.cutscene = new CutsceneEngine();
+
     this.hud = new Hud({
       engine: this.engine,
-      onSelectScene: (k) => this.showScene(k),
+      onSelectScene: (k) => this.showScene(k, true),
       onReset: () => this.reset(),
       getActiveScene: () => this.activeKey,
       onOpenMobileApp,
+      onPlayCutscene: () => this.showScene(this.activeKey, true),
     });
     this.interaction.registerHud(this.hud);
 
-    this.showScene("farmReceiving");
+    this.showScene("farmReceiving", true);
     window.addEventListener("resize", this.onResize);
   }
 
@@ -188,7 +193,7 @@ export class App {
     }
   }
 
-  showScene(key: SceneKey): void {
+  showScene(key: SceneKey, playCutscene = true): void {
     for (const k of SCENE_ORDER) {
       this.scenes[k].group.visible = k === key;
     }
@@ -196,8 +201,38 @@ export class App {
     this.applySceneMood(key);
     this.interaction.setActiveScene(this.scenes[key]);
     this.hud.setActiveScene(key);
-    // Recenter the user near the scene entry.
     this.reset();
+
+    if (playCutscene && !this.renderer.xr.isPresenting) {
+      this.playCutsceneAndFlyIn(key);
+    }
+  }
+
+  private playCutsceneAndFlyIn(key: SceneKey): void {
+    // Elevate camera for cinematic cutscene staging
+    const elevatedPos = new THREE.Vector3(0, 3.2, 10.5);
+    this.rig.position.copy(elevatedPos);
+    this.desktop.reset(this.rig.position);
+
+    this.cutscene.playSceneIntro(key, () => {
+      // Animate smooth camera dolly from elevated view down to operative position
+      const start = performance.now();
+      const duration = 1400; // 1.4s smooth cinematic dolly zoom
+      const from = elevatedPos.clone();
+      const to = this.startPos.clone();
+
+      const dolly = () => {
+        const t = Math.min(1, (performance.now() - start) / duration);
+        // Ease out cubic
+        const ease = 1 - Math.pow(1 - t, 3);
+        this.rig.position.lerpVectors(from, to, ease);
+        this.desktop.reset(this.rig.position);
+        if (t < 1) {
+          requestAnimationFrame(dolly);
+        }
+      };
+      requestAnimationFrame(dolly);
+    });
   }
 
   reset(): void {

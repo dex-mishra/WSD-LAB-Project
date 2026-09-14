@@ -9,6 +9,7 @@ interface HudOptions {
   onReset: () => void;
   getActiveScene: () => SceneKey;
   onOpenMobileApp?: () => void;
+  onPlayCutscene?: () => void;
 }
 
 /**
@@ -63,6 +64,18 @@ export class Hud {
       mobileBtn.textContent = "📱 Mobile Companion UI";
       mobileBtn.addEventListener("click", () => this.opts.onOpenMobileApp!());
       actWrap.appendChild(mobileBtn);
+    }
+
+    if (this.opts.onPlayCutscene) {
+      const cutsceneBtn = document.createElement("button");
+      cutsceneBtn.className = "chip chip-action";
+      cutsceneBtn.style.background = "#b45309";
+      cutsceneBtn.style.color = "#ffffff";
+      cutsceneBtn.style.fontWeight = "bold";
+      cutsceneBtn.textContent = "🎬 Zone Intro";
+      cutsceneBtn.title = "Replay paint brush cutscene intro for this zone";
+      cutsceneBtn.addEventListener("click", () => this.opts.onPlayCutscene!());
+      actWrap.appendChild(cutsceneBtn);
     }
 
     const reset = document.createElement("button");

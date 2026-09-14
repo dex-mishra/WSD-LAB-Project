@@ -573,3 +573,281 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* ==========================================================================
+   Cinematic Paint Brush Cutscene Intro Styling (Gaming / Anime Aesthetic)
+   ========================================================================== */
+.cutscene-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: auto;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 50%, #1e1610 0%, #0c0805 100%);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s ease;
+  user-select: none;
+}
+
+.cutscene-overlay.dissolve-out {
+  opacity: 0;
+  transform: scale(1.04);
+}
+
+.cutscene-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cutscene-ui-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  font-family: var(--font-body);
+  z-index: 4;
+}
+
+/* 21:9 Letterbox Bars */
+.letterbox-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: #000000;
+  z-index: 10;
+}
+
+.letterbox-top {
+  top: 0;
+  border-bottom: 2px solid rgba(245, 158, 11, 0.4);
+  animation: letterboxTop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.letterbox-bottom {
+  bottom: 0;
+  border-top: 2px solid rgba(245, 158, 11, 0.4);
+  animation: letterboxBottom 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes letterboxTop {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes letterboxBottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Controls */
+.cutscene-controls {
+  position: absolute;
+  top: 80px;
+  right: 32px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.cutscene-skip-pill {
+  background: rgba(36, 26, 18, 0.88);
+  border: 1.5px solid rgba(245, 158, 11, 0.5);
+  color: #fffdf5;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: all 0.16s ease;
+}
+
+.cutscene-skip-pill:hover {
+  background: #3d2c1d;
+  border-color: #fbbf24;
+  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.4);
+}
+
+.skip-key {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Watermark Calligraphy Stamp */
+.cutscene-watermark {
+  position: absolute;
+  font-size: 280px;
+  font-weight: 900;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  opacity: 0.12;
+  z-index: 1;
+  pointer-events: none;
+  animation: watermarkScale 2.6s ease-out forwards;
+}
+
+@keyframes watermarkScale {
+  0% { transform: scale(0.85) rotate(-6deg); opacity: 0; }
+  25% { opacity: 0.15; }
+  100% { transform: scale(1.12) rotate(2deg); opacity: 0.08; }
+}
+
+/* Central Mission Title Card */
+.cutscene-card {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  max-width: 920px;
+  padding: 0 28px;
+  animation: cutsceneImpact 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cutsceneImpact {
+  0% { transform: scale(0.9) translateY(20px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.cutscene-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(26, 19, 13, 0.85);
+  border: 1.5px solid currentColor;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  backdrop-filter: blur(6px);
+}
+
+.badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation: badgeBlink 1s infinite alternate;
+}
+
+@keyframes badgeBlink {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.badge-sep {
+  opacity: 0.4;
+}
+
+.cutscene-title {
+  font-family: "Outfit", -apple-system, sans-serif;
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #fffdf5;
+  margin: 0 0 10px;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 35px rgba(245, 158, 11, 0.25);
+  text-transform: uppercase;
+}
+
+.cutscene-slash-line {
+  height: 3.5px;
+  width: 140px;
+  margin: 0 auto 12px;
+  border-radius: 2px;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+  animation: lineExpand 0.6s ease-out forwards;
+}
+
+@keyframes lineExpand {
+  0% { width: 0px; opacity: 0; }
+  100% { width: 140px; opacity: 1; }
+}
+
+.cutscene-sub {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fbbf24;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+}
+
+.cutscene-objective-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(30, 22, 15, 0.9);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 8px 18px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  max-width: 780px;
+}
+
+.obj-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.obj-text {
+  font-size: 0.82rem;
+  color: #e2d5c3;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.cutscene-metrics-row {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.cutscene-metric-chip {
+  background: rgba(22, 16, 11, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 6px 14px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 120px;
+}
+
+.cm-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #a89782;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cm-val {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 800;
+  margin-top: 2px;
+}
