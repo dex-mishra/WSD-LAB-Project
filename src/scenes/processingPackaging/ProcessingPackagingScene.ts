@@ -334,24 +334,24 @@ export class ProcessingPackagingScene extends SceneModule {
     washRoom.add(infeedHopper);
 
     const dosingRack = box(0.8, 1.2, 0.3, 0x37474f);
-    dosingRack.position.set(-10.0, 2.0, -4.75);
+    dosingRack.position.set(-11.4, 1.6, -4.75);
     washRoom.add(dosingRack);
 
     const jugPAA = box(0.3, 0.4, 0.22, 0x0288d1);
-    jugPAA.position.set(-10.2, 1.6, -4.65);
+    jugPAA.position.set(-11.6, 1.2, -4.65);
     washRoom.add(jugPAA);
 
     const jugSan = box(0.3, 0.4, 0.22, 0x43a047);
-    jugSan.position.set(-9.8, 1.6, -4.65);
+    jugSan.position.set(-11.2, 1.2, -4.65);
     washRoom.add(jugSan);
 
-    this.waterMonitor = label("WASH WATER: 5.2°C\nPAA: 65 PPM\nEXCURSION: +1.4°C (+3.2°C·h)", 1.4, {
+    this.waterMonitor = label("WASH WATER: 5.2°C\nPAA: 65 PPM\nEXCURSION: +1.4°C (+3.2°C·h)", 1.6, {
       fontSize: 34,
-      width: 440,
+      width: 460,
       height: 220,
       bg: "#0A2540",
     });
-    this.waterMonitor.position.set(-10.0, 2.2, -4.7);
+    this.waterMonitor.position.set(-9.2, 2.3, -4.72);
     washRoom.add(this.waterMonitor);
 
     const drainGrate = box(3.6, 0.02, 0.35, 0x455a64, { metal: 0.9 });
@@ -646,16 +646,16 @@ export class ProcessingPackagingScene extends SceneModule {
     coderHead.position.set(7.0, 1.3, -2.4);
     this.conveyor.add(coderHead);
 
-    const gantryL = box(0.1, 3.2, 0.1, 0x1e3a5f);
-    gantryL.position.set(2.8, 1.6, -2.2);
+    const gantryL = box(0.1, 4.0, 0.1, 0x1e3a5f);
+    gantryL.position.set(2.8, 2.0, -2.2);
     this.conveyor.add(gantryL);
 
-    const gantryR = box(0.1, 3.2, 0.1, 0x1e3a5f);
-    gantryR.position.set(5.2, 1.6, -2.2);
+    const gantryR = box(0.1, 4.0, 0.1, 0x1e3a5f);
+    gantryR.position.set(5.2, 2.0, -2.2);
     this.conveyor.add(gantryR);
 
     const gantryTop = box(2.6, 0.1, 0.1, 0x1e3a5f);
-    gantryTop.position.set(4.0, 3.2, -2.2);
+    gantryTop.position.set(4.0, 4.0, -2.2);
     this.conveyor.add(gantryTop);
 
     this.bottleneckLabel = label("BOTTLENECK: NOMINAL FLOW", 2.8, {
@@ -664,7 +664,7 @@ export class ProcessingPackagingScene extends SceneModule {
       width: 560,
       height: 200,
     });
-    this.bottleneckLabel.position.set(4.0, 2.65, -2.2);
+    this.bottleneckLabel.position.set(4.0, 3.35, -2.2);
     this.conveyor.add(this.bottleneckLabel);
 
     this.group.add(makeInteractable(this.conveyor, {
