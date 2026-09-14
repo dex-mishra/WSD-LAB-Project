@@ -67,6 +67,14 @@ function launch3dTwin(): void {
 startMobileBtn?.addEventListener("click", launchMobileApp);
 startVrBtn?.addEventListener("click", launch3dTwin);
 
+// Support direct link parameters (?mode=mobile or #mobile) to open companion app immediately
+const params = new URLSearchParams(window.location.search);
+if (params.get("mode") === "mobile" || window.location.hash === "#mobile") {
+  launchMobileApp();
+} else if (params.get("mode") === "vr" || window.location.hash === "#vr") {
+  launch3dTwin();
+}
+
 void detectXR();
 
 // Surface uncaught errors instead of failing silently.
