@@ -688,22 +688,37 @@ body {
   border-radius: 4px;
 }
 
-/* Watermark Calligraphy Stamp */
+/* Watermark Calligraphy Stamp (Authentic Hindi Devanagari Calligraphy) */
 .cutscene-watermark {
   position: absolute;
-  font-size: 280px;
-  font-weight: 900;
-  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
-  opacity: 0.12;
+  font-size: 240px;
+  font-weight: 800;
+  font-family: 'Yatra One', 'Rozha One', 'Tiro Devanagari Hindi', 'Outfit', serif;
+  opacity: 0.14;
   z-index: 1;
   pointer-events: none;
   animation: watermarkScale 2.6s ease-out forwards;
+  user-select: none;
+  letter-spacing: 0.04em;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
 @keyframes watermarkScale {
-  0% { transform: scale(0.85) rotate(-6deg); opacity: 0; }
-  25% { opacity: 0.15; }
-  100% { transform: scale(1.12) rotate(2deg); opacity: 0.08; }
+  0% { transform: scale(0.85) rotate(-4deg); opacity: 0; }
+  25% { opacity: 0.16; }
+  100% { transform: scale(1.1) rotate(1deg); opacity: 0.10; }
+}
+
+.cutscene-hindi-tag {
+  display: inline-block;
+  font-family: 'Yatra One', 'Rozha One', 'Tiro Devanagari Hindi', sans-serif;
+  font-size: 1.18rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+  animation: cutsceneImpact 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Central Mission Title Card */
