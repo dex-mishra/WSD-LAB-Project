@@ -34,6 +34,20 @@ export class ProcessingPackagingScene extends SceneModule {
   private workers: THREE.Group[] = [];
   private workerTime = 0;
 
+  // Dynamic Visual Scenario Elements
+  private queueGroup!: THREE.Group;
+  private queueStatusLabel!: THREE.Mesh;
+  private waterMonitor!: THREE.Mesh;
+  private flumeWaterMat!: THREE.MeshStandardMaterial;
+  private dicerHmi!: THREE.Mesh;
+  private recipeScreen!: THREE.Mesh;
+  private dicerAuxGroup!: THREE.Group;
+  private qaTablet!: THREE.Mesh;
+  private rejectBinGroup!: THREE.Group;
+  private finishedPalletGroup!: THREE.Group;
+  private cleanroomStatusBeacons: THREE.Mesh[] = [];
+  private currentScenarioId = "baseline";
+
   constructor(engine: ScenarioEngine) {
     super(engine);
     this.init();
@@ -107,28 +121,19 @@ export class ProcessingPackagingScene extends SceneModule {
   private buildRawIntakeBuffer(): void {
     const intakeGroup = new THREE.Group();
 
-    // Wooden Euro-Pallet staging fresh harvest crates
-    const pallet = box(1.2, 0.14, 0.85, 0x8d6e63, { rough: 0.9 });
-    pallet.position.set(-16.5, 0.07, -2.2);
-    intakeGroup.add(pallet);
+    // Dynamic queue crate group container
+    this.queueGroup = new THREE.Group();
+    intakeGroup.add(this.queueGroup);
 
-    // Staged harvest crates (8 crates: green, red, blue)
-    for (let r = 0; r < 2; r++) {
-      for (let c = 0; c < 2; c++) {
-        for (let tier = 0; tier < 2; tier++) {
-          const color = (r + c) % 2 === 0 ? 0x2e7d32 : 0xd32f2f;
-          const produceColor = (r + c) % 2 === 0 ? 0x43a047 : 0xe53935;
-
-          const crate = box(0.55, 0.26, 0.38, color);
-          crate.position.set(-16.78 + c * 0.56, 0.27 + tier * 0.27, -2.39 + r * 0.38);
-          intakeGroup.add(crate);
-
-          const produce = box(0.48, 0.08, 0.32, produceColor);
-          produce.position.set(-16.78 + c * 0.56, 0.37 + tier * 0.27, -2.39 + r * 0.38);
-          intakeGroup.add(produce);
-        }
-      }
-    }
+    // Overhead dynamic queue telemetry signboard
+    this.queueStatusLabel = label("INTAKE QUEUE: INITIALIZING", 2.6, {
+      fontSize: 38,
+      width: 620,
+      height: 200,
+      bg: "#E65100",
+    });
+    this.queueStatusLabel.position.set(-15.6, 2.7, -1.8);
+    intakeGroup.add(this.queueStatusLabel);
 
     // Gowning & Personnel Hygiene Washbasin Station
     const sinkBase = box(0.55, 0.9, 0.45, 0xb0bec5, { metal: 0.8 });
@@ -164,13 +169,10 @@ export class ProcessingPackagingScene extends SceneModule {
 
   /**
    * Station 2: Room 1 - Hygienic Washing & Flume Sanitization Bay
-   * Enclosed cleanroom room with clear observation glass facade, PVC strip curtains,
-   * continuous immersion wash flume, rotary de-stoner drum, and automated water dosing kiosk.
    */
   private buildWashingCleanroomBay(): void {
     const washRoom = new THREE.Group();
 
-    // --- Room Enclosure (Width 6.2m, Depth 5.4m, Height 3.8m, Center x = -10.0, z = -2.2) ---
     // Stainless base kickplate curb
     const curbL = box(0.18, 0.25, 5.4, 0x78909c, { metal: 0.8 });
     curbL.position.set(-13.1, 0.125, -2.2);
@@ -216,13 +218,17 @@ export class ProcessingPackagingScene extends SceneModule {
     hepaUnit.position.set(-10.0, 4.2, -2.2);
     washRoom.add(hepaUnit);
 
-    // --- Front Facade (Viewing Window + Operator Doorway) ---
-    // Lower front half-wall
+    // Cleanroom Status Indicator Beacon
+    const beacon = box(0.28, 0.22, 0.28, 0x81d4fa, { emissive: 0x81d4fa });
+    beacon.position.set(-10.0, 4.0, 0.6);
+    washRoom.add(beacon);
+    this.cleanroomStatusBeacons.push(beacon);
+
+    // --- Front Facade ---
     const frontHalfWall = box(3.8, 0.95, 0.15, 0xedf2f7);
     frontHalfWall.position.set(-9.0, 0.475, 0.5);
     washRoom.add(frontHalfWall);
 
-    // Cleanroom Large Observation Glass Window
     const glassMat = new THREE.MeshStandardMaterial({
       color: 0x90caf9,
       transparent: true,
@@ -234,7 +240,6 @@ export class ProcessingPackagingScene extends SceneModule {
     glassWindow.position.set(-9.0, 2.1, 0.5);
     washRoom.add(glassWindow);
 
-    // Window stainless steel frame
     const winFrameT = box(3.8, 0.08, 0.18, 0x37474f, { metal: 0.8 });
     winFrameT.position.set(-9.0, 3.25, 0.5);
     washRoom.add(winFrameT);
@@ -243,7 +248,6 @@ export class ProcessingPackagingScene extends SceneModule {
     winFrameB.position.set(-9.0, 0.95, 0.5);
     washRoom.add(winFrameB);
 
-    // Doorway opening with translucent hygienic blue PVC strip curtains
     const doorFrame = box(1.8, 3.8, 0.15, 0xedf2f7);
     doorFrame.position.set(-12.1, 1.9, 0.5);
     washRoom.add(doorFrame);
@@ -260,7 +264,6 @@ export class ProcessingPackagingScene extends SceneModule {
       washRoom.add(strip);
     }
 
-    // Room Identification Header Plaque
     const roomHeader = label("ROOM 1 · HYGIENIC WASHING & FLUME SANITATION BAY", 4.2, {
       fontSize: 38,
       width: 960,
@@ -271,24 +274,21 @@ export class ProcessingPackagingScene extends SceneModule {
     washRoom.add(roomHeader);
 
     // --- Interior Machines inside Room 1 ---
-    // 1. Continuous Stainless Steel Wash Flume & Bubble Tank
     const flumeTank = box(3.6, 0.85, 1.3, 0x90a4ae, { metal: 0.85, rough: 0.25 });
     flumeTank.position.set(-10.0, 0.425, -2.2);
     washRoom.add(flumeTank);
 
-    // Circulating Sanitized Wash Water with transparent cyan plane
-    const waterMat = new THREE.MeshStandardMaterial({
+    this.flumeWaterMat = new THREE.MeshStandardMaterial({
       color: 0x00bcd4,
       transparent: true,
       opacity: 0.72,
       roughness: 0.1,
     });
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.1), waterMat);
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 1.1), this.flumeWaterMat);
     water.rotation.x = -Math.PI / 2;
     water.position.set(-10.0, 0.8, -2.2);
     washRoom.add(water);
 
-    // Floating batch produce in water flume
     for (const [ox, oz] of [
       [-1.2, 0.2],
       [-0.6, -0.2],
@@ -301,7 +301,6 @@ export class ProcessingPackagingScene extends SceneModule {
       washRoom.add(floatingItem);
     }
 
-    // Overhead High-Pressure Spray Headers (3 Stainless Arches with spray nozzles)
     for (const sx of [-11.2, -10.0, -8.8]) {
       const archL = box(0.04, 0.8, 0.04, 0xb0bec5, { metal: 0.9 });
       archL.position.set(sx, 1.25, -2.8);
@@ -315,7 +314,6 @@ export class ProcessingPackagingScene extends SceneModule {
       archTop.position.set(sx, 1.65, -2.2);
       washRoom.add(archTop);
 
-      // Spray Nozzles
       for (const nz of [-2.5, -2.2, -1.9]) {
         const nozzle = box(0.06, 0.08, 0.06, 0x37474f);
         nozzle.position.set(sx, 1.6, nz);
@@ -323,7 +321,6 @@ export class ProcessingPackagingScene extends SceneModule {
       }
     }
 
-    // 2. Rotary De-Stoning Drum / Soil Separator
     const drum = new THREE.Mesh(
       new THREE.CylinderGeometry(0.45, 0.45, 1.4, 16),
       new THREE.MeshStandardMaterial({ color: 0x78909c, metalness: 0.85, roughness: 0.3 })
@@ -336,7 +333,6 @@ export class ProcessingPackagingScene extends SceneModule {
     infeedHopper.position.set(-12.6, 1.3, -2.2);
     washRoom.add(infeedHopper);
 
-    // 3. Automated Chemical Dosing & IoT Water Quality Panel
     const dosingRack = box(0.8, 1.2, 0.3, 0x37474f);
     dosingRack.position.set(-10.0, 2.0, -4.75);
     washRoom.add(dosingRack);
@@ -349,16 +345,15 @@ export class ProcessingPackagingScene extends SceneModule {
     jugSan.position.set(-9.8, 1.6, -4.65);
     washRoom.add(jugSan);
 
-    const waterMonitor = label("WASH WATER: 3.8°C\nPAA: 80 PPM · pH: 6.8\nFLOW: 140 L/MIN", 1.4, {
+    this.waterMonitor = label("WASH WATER: 5.2°C\nPAA: 65 PPM\nEXCURSION: +210°C·h", 1.4, {
       fontSize: 34,
       width: 440,
       height: 220,
       bg: "#0A2540",
     });
-    waterMonitor.position.set(-10.0, 2.2, -4.7);
-    washRoom.add(waterMonitor);
+    this.waterMonitor.position.set(-10.0, 2.2, -4.7);
+    washRoom.add(this.waterMonitor);
 
-    // 4. Stainless Floor Drain Trench with Perforated Grate
     const drainGrate = box(3.6, 0.02, 0.35, 0x455a64, { metal: 0.9 });
     drainGrate.position.set(-10.0, 0.015, -0.8);
     washRoom.add(drainGrate);
@@ -379,14 +374,10 @@ export class ProcessingPackagingScene extends SceneModule {
 
   /**
    * Station 3: Room 2 - Sterile Cutting, Trimming & Prep Cleanroom Suite
-   * Enclosed cleanroom suite with observation glass window, commercial vegetable dicer/slicer machine,
-   * dual-sided stainless trimming prep table, recipe formulation terminal, and conveyor pass-through.
    */
   private buildPrepCleanroomSuite(): void {
     const prepRoom = new THREE.Group();
 
-    // --- Room Enclosure (Width 6.4m, Depth 5.4m, Height 3.8m, Center x = -2.3, z = -2.2) ---
-    // Stainless base kickplate curb
     const curbL = box(0.18, 0.25, 5.4, 0x78909c, { metal: 0.8 });
     curbL.position.set(-5.5, 0.125, -2.2);
     prepRoom.add(curbL);
@@ -395,7 +386,6 @@ export class ProcessingPackagingScene extends SceneModule {
     curbR.position.set(0.9, 0.125, -2.2);
     prepRoom.add(curbR);
 
-    // Cleanroom Partition Walls (Hygienic composite white panels)
     const wallLeft = box(0.15, 3.8, 5.4, 0xedf2f7);
     wallLeft.position.set(-5.5, 1.9, -2.2);
     prepRoom.add(wallLeft);
@@ -404,7 +394,6 @@ export class ProcessingPackagingScene extends SceneModule {
     wallBack.position.set(-2.3, 1.9, -4.9);
     prepRoom.add(wallBack);
 
-    // Right Partition Wall with Output Conveyor Discharge Opening leading to Packaging Line
     const wallRightTop = box(0.15, 2.4, 5.4, 0xedf2f7);
     wallRightTop.position.set(0.9, 2.6, -2.2);
     prepRoom.add(wallRightTop);
@@ -417,7 +406,6 @@ export class ProcessingPackagingScene extends SceneModule {
     wallRightBotB.position.set(0.9, 0.7, -3.8);
     prepRoom.add(wallRightBotB);
 
-    // Ceiling with recessed LED Cleanroom light bars
     const ceiling = box(6.4, 0.18, 5.4, 0xd0dfea);
     ceiling.position.set(-2.3, 3.8, -2.2);
     prepRoom.add(ceiling);
@@ -426,18 +414,19 @@ export class ProcessingPackagingScene extends SceneModule {
     ledPanel.position.set(-2.3, 3.7, -2.2);
     prepRoom.add(ledPanel);
 
-    // Overhead HVAC Air Filtration Exhaust Unit on roof
     const hvacUnit = box(1.6, 0.6, 1.2, 0x90a4ae, { metal: 0.6 });
     hvacUnit.position.set(-2.3, 4.2, -2.2);
     prepRoom.add(hvacUnit);
 
-    // --- Front Facade (Viewing Window + Operator Doorway) ---
-    // Lower front half-wall
+    const beacon = box(0.28, 0.22, 0.28, 0x81d4fa, { emissive: 0x81d4fa });
+    beacon.position.set(-2.3, 4.0, 0.6);
+    prepRoom.add(beacon);
+    this.cleanroomStatusBeacons.push(beacon);
+
     const frontHalfWall = box(4.0, 0.95, 0.15, 0xedf2f7);
     frontHalfWall.position.set(-1.3, 0.475, 0.5);
     prepRoom.add(frontHalfWall);
 
-    // Cleanroom Large Observation Glass Window
     const glassMat = new THREE.MeshStandardMaterial({
       color: 0x80cbc4,
       transparent: true,
@@ -449,7 +438,6 @@ export class ProcessingPackagingScene extends SceneModule {
     glassWindow.position.set(-1.3, 2.1, 0.5);
     prepRoom.add(glassWindow);
 
-    // Window frame
     const winFrameT = box(4.0, 0.08, 0.18, 0x37474f, { metal: 0.8 });
     winFrameT.position.set(-1.3, 3.25, 0.5);
     prepRoom.add(winFrameT);
@@ -458,7 +446,6 @@ export class ProcessingPackagingScene extends SceneModule {
     winFrameB.position.set(-1.3, 0.95, 0.5);
     prepRoom.add(winFrameB);
 
-    // Doorway opening with translucent hygienic yellow PVC strip curtains
     const doorFrame = box(1.8, 3.8, 0.15, 0xedf2f7);
     doorFrame.position.set(-4.5, 1.9, 0.5);
     prepRoom.add(doorFrame);
@@ -475,7 +462,6 @@ export class ProcessingPackagingScene extends SceneModule {
       prepRoom.add(strip);
     }
 
-    // Room Identification Header Plaque
     const roomHeader = label("ROOM 2 · STERILE CUTTING, TRIMMING & PREP SUITE", 4.4, {
       fontSize: 38,
       width: 980,
@@ -485,18 +471,15 @@ export class ProcessingPackagingScene extends SceneModule {
     roomHeader.position.set(-1.3, 3.55, 0.6);
     prepRoom.add(roomHeader);
 
-    // --- Interior Machines inside Room 2 ---
-    // 1. High-Speed Industrial Produce Dicer / Slicer / Chopper Machine
+    // Primary Industrial Produce Dicer
     const dicerCabinet = box(1.5, 1.4, 1.2, 0x78909c, { metal: 0.85, rough: 0.25 });
     dicerCabinet.position.set(-4.0, 0.7, -2.2);
     prepRoom.add(dicerCabinet);
 
-    // Stainless Infeed Hopper on Top
     const dicerHopper = box(0.7, 0.5, 0.7, 0xb0bec5, { metal: 0.9 });
     dicerHopper.position.set(-4.0, 1.65, -2.2);
     prepRoom.add(dicerHopper);
 
-    // Rotary Cutting Chamber Housing
     const rotaryChamber = new THREE.Mesh(
       new THREE.CylinderGeometry(0.38, 0.38, 0.5, 16),
       new THREE.MeshStandardMaterial({ color: 0x37474f, metalness: 0.9, roughness: 0.2 })
@@ -504,22 +487,41 @@ export class ProcessingPackagingScene extends SceneModule {
     rotaryChamber.position.set(-4.0, 1.15, -1.6);
     prepRoom.add(rotaryChamber);
 
-    // Digital HMI Touch Control Screen
-    const hmiScreen = label("DICER HMI · RUNNING\nBLADE: 12mm · SPEED: 95%\nBATCH: #PREP-2026-B", 0.9, {
+    this.dicerHmi = label("DICER HMI · BOTTLENECK\nRATE: 11.5 C/H (SINGLE)\nQUEUE DELAY: 1.9h", 0.9, {
       fontSize: 36,
       width: 400,
       height: 220,
-      bg: "#0B1D2E",
+      bg: "#F57F17",
     });
-    hmiScreen.position.set(-4.0, 1.6, -1.55);
-    prepRoom.add(hmiScreen);
+    this.dicerHmi.position.set(-4.0, 1.6, -1.55);
+    prepRoom.add(this.dicerHmi);
 
-    // 2. Heavy-Duty Stainless Trimming & Inspection Prep Table
+    // Auxiliary Secondary High-Speed Dicer (Visible in Improved State to eliminate bottleneck)
+    this.dicerAuxGroup = new THREE.Group();
+    const auxCabinet = box(1.1, 1.3, 0.9, 0x546e7a, { metal: 0.85 });
+    auxCabinet.position.set(-4.0, 0.65, -3.7);
+    this.dicerAuxGroup.add(auxCabinet);
+
+    const auxHopper = box(0.5, 0.4, 0.5, 0x90a4ae, { metal: 0.9 });
+    auxHopper.position.set(-4.0, 1.45, -3.7);
+    this.dicerAuxGroup.add(auxHopper);
+
+    const auxSign = label("AUX DICER #2 · 18 C/H\nBALANCED LOAD", 0.75, {
+      fontSize: 32,
+      width: 360,
+      height: 180,
+      bg: "#1B5E20",
+    });
+    auxSign.position.set(-4.0, 1.4, -3.15);
+    this.dicerAuxGroup.add(auxSign);
+    this.dicerAuxGroup.visible = false;
+    prepRoom.add(this.dicerAuxGroup);
+
+    // Trimming & Prep Table
     const prepTable = box(2.8, 0.1, 1.3, 0xb0bec5, { metal: 0.85, rough: 0.25 });
     prepTable.position.set(-1.3, 0.9, -2.2);
     prepRoom.add(prepTable);
 
-    // Stainless Legs
     for (const [lx, lz] of [
       [-2.5, -2.7],
       [-0.1, -2.7],
@@ -531,7 +533,6 @@ export class ProcessingPackagingScene extends SceneModule {
       prepRoom.add(leg);
     }
 
-    // Sanitary White HDPE Cutting Board inserts on table
     const cuttingBoard1 = box(1.1, 0.04, 0.9, 0xffffff, { rough: 0.4 });
     cuttingBoard1.position.set(-2.0, 0.97, -2.2);
     prepRoom.add(cuttingBoard1);
@@ -540,7 +541,6 @@ export class ProcessingPackagingScene extends SceneModule {
     cuttingBoard2.position.set(-0.6, 0.97, -2.2);
     prepRoom.add(cuttingBoard2);
 
-    // Diced produce trays on prep table
     const dicedTray1 = box(0.45, 0.12, 0.35, 0x2e7d32);
     dicedTray1.position.set(-2.0, 1.05, -2.2);
     prepRoom.add(dicedTray1);
@@ -549,17 +549,15 @@ export class ProcessingPackagingScene extends SceneModule {
     dicedTray2.position.set(-0.6, 1.05, -2.2);
     prepRoom.add(dicedTray2);
 
-    // 3. Batch Recipe Terminal & Bench Scale mounted on back wall
-    const recipeScreen = label("RECIPE: DICED ROOTS\nTARGET: 250g ± 2g\nYIELD EFFICIENCY: 98.2%", 1.4, {
+    this.recipeScreen = label("CONVENTIONAL PREP\nYIELD EFFICIENCY: 62.0%\nNET LOSS: ₹33,600", 1.4, {
       fontSize: 34,
       width: 440,
       height: 220,
       bg: "#102A43",
     });
-    recipeScreen.position.set(-1.3, 2.0, -4.75);
-    prepRoom.add(recipeScreen);
+    this.recipeScreen.position.set(-1.3, 2.0, -4.75);
+    prepRoom.add(this.recipeScreen);
 
-    // 4. Organic Trimmings & Waste Chute Collection Bin underneath
     const wasteBin = box(0.65, 0.7, 0.65, 0x5d4037);
     wasteBin.position.set(-2.4, 0.35, -3.4);
     prepRoom.add(wasteBin);
@@ -580,26 +578,20 @@ export class ProcessingPackagingScene extends SceneModule {
 
   /**
    * Station 4: Automated Conveyor Packaging & Sealing Line (x = 5.4, z = -2.2)
-   * Continuous linear conveyor connecting from Room 2's discharge port directly into Room 3 (QA Lab),
-   * equipped with an automated tray sealer / flow-wrapper, inkjet batch coder,
-   * and overhead dynamic bottleneck telemetry gantry.
    */
   private buildPackagingConveyorLine(): void {
     this.conveyor = new THREE.Group();
 
-    // Main Linear Conveyor Bed (Length 9.6m, Width 0.85m, Height 0.18m, Center x = 5.4, z = -2.2)
     const belt = box(9.6, 0.18, 0.85, 0x263238, { metal: 0.4, rough: 0.6 });
     belt.position.set(5.4, 0.89, -2.2);
     this.conveyor.add(belt);
 
-    // Stainless steel guide side rails
     for (const rz of [-2.65, -1.75]) {
       const sideRail = box(9.6, 0.08, 0.04, 0xb0bec5, { metal: 0.9 });
       sideRail.position.set(5.4, 1.02, rz);
       this.conveyor.add(sideRail);
     }
 
-    // Heavy-duty stainless conveyor support legs
     for (const lx of [1.2, 3.2, 5.2, 7.2, 9.2]) {
       const leg = box(0.12, 0.8, 0.12, 0x455a64, { metal: 0.8 });
       leg.position.set(lx, 0.4, -2.2);
@@ -610,21 +602,17 @@ export class ProcessingPackagingScene extends SceneModule {
       this.conveyor.add(foot);
     }
 
-    // Continuous Moving Packaged Product Units on Conveyor
     for (let i = 0; i < 8; i++) {
       const itemGroup = new THREE.Group();
 
-      // Clear eco-tray base
       const tray = box(0.42, 0.12, 0.32, 0xffffff, { rough: 0.3 });
       tray.position.set(0, 0.06, 0);
       itemGroup.add(tray);
 
-      // Packaged fresh produce contents inside tray
       const contents = box(0.38, 0.1, 0.28, i % 2 === 0 ? 0xd32f2f : 0x43a047);
       contents.position.set(0, 0.14, 0);
       itemGroup.add(contents);
 
-      // Sealed transparent top film
       const film = box(0.42, 0.02, 0.32, 0x90caf9, { rough: 0.1, metal: 0.3 });
       film.position.set(0, 0.2, 0);
       itemGroup.add(film);
@@ -634,12 +622,10 @@ export class ProcessingPackagingScene extends SceneModule {
       this.conveyor.add(itemGroup);
     }
 
-    // 1. Automated Tray Sealer / Flow-Wrapper Module
     const sealerCabinet = box(1.8, 1.6, 1.3, 0x546e7a, { metal: 0.85, rough: 0.3 });
     sealerCabinet.position.set(4.0, 1.4, -2.2);
     this.conveyor.add(sealerCabinet);
 
-    // Film Roll Reels on Top
     const filmRoll = new THREE.Mesh(
       new THREE.CylinderGeometry(0.24, 0.24, 0.55, 16),
       new THREE.MeshStandardMaterial({ color: 0x90caf9, metalness: 0.3, roughness: 0.4 })
@@ -648,12 +634,10 @@ export class ProcessingPackagingScene extends SceneModule {
     filmRoll.position.set(4.0, 2.35, -2.2);
     this.conveyor.add(filmRoll);
 
-    // Heat Sealer Chamber Aperture Opening
     const tunnelOpening = box(0.85, 0.4, 0.95, 0x1a2634);
     tunnelOpening.position.set(4.0, 1.05, -2.2);
     this.conveyor.add(tunnelOpening);
 
-    // 2. Continuous Inkjet Batch Coder / Barcode Printer
     const coderPole = box(0.06, 1.4, 0.06, 0x37474f);
     coderPole.position.set(7.0, 1.5, -2.7);
     this.conveyor.add(coderPole);
@@ -662,7 +646,6 @@ export class ProcessingPackagingScene extends SceneModule {
     coderHead.position.set(7.0, 1.3, -2.4);
     this.conveyor.add(coderHead);
 
-    // 3. Overhead Bottleneck & Flow Telemetry Gantry
     const gantryL = box(0.1, 3.2, 0.1, 0x1e3a5f);
     gantryL.position.set(2.8, 1.6, -2.2);
     this.conveyor.add(gantryL);
@@ -700,15 +683,10 @@ export class ProcessingPackagingScene extends SceneModule {
 
   /**
    * Station 5: Room 3 - Quality Assurance & Food Safety Laboratory (Enclosed Testing Room)
-   * Enclosed cleanroom testing lab with observation glass window, in-line checkweigher,
-   * optical metal detector gate, analytical seal burst tester, stereo microscope,
-   * microbiology sample retention incubator cabinet, and red defect purge bin.
    */
   private buildQualityTestingCleanroomLab(): void {
     const qaLab = new THREE.Group();
 
-    // --- Room Enclosure (Width 6.0m, Depth 5.4m, Height 3.8m, Center x = 12.8, z = -2.2) ---
-    // Stainless base kickplate curb
     const curbL = box(0.18, 0.25, 5.4, 0x78909c, { metal: 0.8 });
     curbL.position.set(9.8, 0.125, -2.2);
     qaLab.add(curbL);
@@ -717,8 +695,6 @@ export class ProcessingPackagingScene extends SceneModule {
     curbR.position.set(15.8, 0.125, -2.2);
     qaLab.add(curbR);
 
-    // Cleanroom Partition Walls (Hygienic composite white panels)
-    // Left Wall with Conveyor Infeed Cutout from Packaging Line
     const wallLeftTop = box(0.15, 2.4, 5.4, 0xedf2f7);
     wallLeftTop.position.set(9.8, 2.6, -2.2);
     qaLab.add(wallLeftTop);
@@ -735,7 +711,6 @@ export class ProcessingPackagingScene extends SceneModule {
     wallBack.position.set(12.8, 1.9, -4.9);
     qaLab.add(wallBack);
 
-    // Right Wall with Discharge Port to Finished Goods Pallet
     const wallRightTop = box(0.15, 2.4, 5.4, 0xedf2f7);
     wallRightTop.position.set(15.8, 2.6, -2.2);
     qaLab.add(wallRightTop);
@@ -748,7 +723,6 @@ export class ProcessingPackagingScene extends SceneModule {
     wallRightBotB.position.set(15.8, 0.7, -3.8);
     qaLab.add(wallRightBotB);
 
-    // Ceiling with recessed LED Cleanroom daylight panels
     const ceiling = box(6.0, 0.18, 5.4, 0xd0dfea);
     ceiling.position.set(12.8, 3.8, -2.2);
     qaLab.add(ceiling);
@@ -757,18 +731,19 @@ export class ProcessingPackagingScene extends SceneModule {
     ledPanel.position.set(12.8, 3.7, -2.2);
     qaLab.add(ledPanel);
 
-    // Overhead HVAC / HEPA Filter Unit on roof
     const hvacUnit = box(1.6, 0.6, 1.2, 0x90a4ae, { metal: 0.6 });
     hvacUnit.position.set(12.8, 4.2, -2.2);
     qaLab.add(hvacUnit);
 
-    // --- Front Facade (Observation Glass Window + Operator Doorway) ---
-    // Lower front half-wall
+    const beacon = box(0.28, 0.22, 0.28, 0x81d4fa, { emissive: 0x81d4fa });
+    beacon.position.set(12.8, 4.0, 0.6);
+    qaLab.add(beacon);
+    this.cleanroomStatusBeacons.push(beacon);
+
     const frontHalfWall = box(3.8, 0.95, 0.15, 0xedf2f7);
     frontHalfWall.position.set(12.0, 0.475, 0.5);
     qaLab.add(frontHalfWall);
 
-    // Cleanroom Large Observation Glass Window
     const glassMat = new THREE.MeshStandardMaterial({
       color: 0x81d4fa,
       transparent: true,
@@ -780,7 +755,6 @@ export class ProcessingPackagingScene extends SceneModule {
     glassWindow.position.set(12.0, 2.1, 0.5);
     qaLab.add(glassWindow);
 
-    // Window frame
     const winFrameT = box(3.8, 0.08, 0.18, 0x37474f, { metal: 0.8 });
     winFrameT.position.set(12.0, 3.25, 0.5);
     qaLab.add(winFrameT);
@@ -789,7 +763,6 @@ export class ProcessingPackagingScene extends SceneModule {
     winFrameB.position.set(12.0, 0.95, 0.5);
     qaLab.add(winFrameB);
 
-    // Doorway with translucent blue PVC strip curtains
     const doorFrame = box(1.8, 3.8, 0.15, 0xedf2f7);
     doorFrame.position.set(14.8, 1.9, 0.5);
     qaLab.add(doorFrame);
@@ -806,7 +779,6 @@ export class ProcessingPackagingScene extends SceneModule {
       qaLab.add(strip);
     }
 
-    // Room Identification Header Plaque
     const roomHeader = label("ROOM 3 · QUALITY ASSURANCE & TESTING LABORATORY", 4.4, {
       fontSize: 38,
       width: 980,
@@ -816,8 +788,6 @@ export class ProcessingPackagingScene extends SceneModule {
     roomHeader.position.set(12.0, 3.55, 0.6);
     qaLab.add(roomHeader);
 
-    // --- Interior Testing Equipment inside Room 3 ---
-    // 1. In-Line Checkweigher & Metal Detector Tunnel Gate on Infeed
     const detectorTunnel = box(0.65, 0.75, 0.95, 0x37474f, { metal: 0.8 });
     detectorTunnel.position.set(10.6, 1.25, -2.2);
     qaLab.add(detectorTunnel);
@@ -826,7 +796,6 @@ export class ProcessingPackagingScene extends SceneModule {
     tunnelCore.position.set(10.6, 1.2, -2.2);
     qaLab.add(tunnelCore);
 
-    // 2. Heavy-Duty Stainless Steel QA Workbench Table
     const qcTable = box(2.6, 0.1, 1.3, 0xb0bec5, { metal: 0.85, rough: 0.25 });
     qcTable.position.set(13.2, 0.9, -2.2);
     qaLab.add(qcTable);
@@ -842,12 +811,10 @@ export class ProcessingPackagingScene extends SceneModule {
       qaLab.add(leg);
     }
 
-    // 3. Digital Seal Burst & Leak Integrity Testing Chamber
     const sealTester = box(0.5, 0.35, 0.4, 0x112233);
     sealTester.position.set(12.4, 1.12, -2.2);
     qaLab.add(sealTester);
 
-    // 4. Optical Stereo Inspection Microscope on Stand
     const microscopeBase = box(0.24, 0.04, 0.24, 0xffffff);
     microscopeBase.position.set(13.3, 0.97, -2.2);
     qaLab.add(microscopeBase);
@@ -860,17 +827,15 @@ export class ProcessingPackagingScene extends SceneModule {
     microscopeHead.position.set(13.3, 1.28, -2.2);
     qaLab.add(microscopeHead);
 
-    // 5. QA Verification Terminal Tablet Display
-    const qaTablet = label("QA VERIFIED · PASS\nSEAL: 100% · WT: 250g ± 1g\nCONTAMINANTS: ZERO", 0.9, {
+    this.qaTablet = label("QA RELEASE: 62 UNITS\nSPOILED: 28 CRATES\nREJECTS: 10 CRATES", 0.9, {
       fontSize: 34,
       width: 420,
       height: 200,
-      bg: "#1565C0",
+      bg: "#0D47A1",
     });
-    qaTablet.position.set(14.0, 1.25, -2.2);
-    qaLab.add(qaTablet);
+    this.qaTablet.position.set(14.0, 1.25, -2.2);
+    qaLab.add(this.qaTablet);
 
-    // 6. Microbiology Retained Sample & Incubation Cabinet on Back Wall
     const sampleCabinet = box(1.2, 1.4, 0.35, 0x607d8b, { metal: 0.7 });
     sampleCabinet.position.set(13.0, 2.0, -4.75);
     qaLab.add(sampleCabinet);
@@ -879,7 +844,7 @@ export class ProcessingPackagingScene extends SceneModule {
     sampleGlass.position.set(13.0, 2.0, -4.56);
     qaLab.add(sampleGlass);
 
-    // 7. Dedicated Red Non-Conformance Reject Cull Bin
+    // Reject bin container & dynamic reject item group
     const rejectBin = box(0.7, 0.8, 0.7, 0xb23a2b);
     rejectBin.position.set(11.2, 0.4, -0.6);
     qaLab.add(rejectBin);
@@ -887,6 +852,9 @@ export class ProcessingPackagingScene extends SceneModule {
     const rejectLid = box(0.75, 0.08, 0.75, 0x8a2318);
     rejectLid.position.set(11.2, 0.84, -0.6);
     qaLab.add(rejectLid);
+
+    this.rejectBinGroup = new THREE.Group();
+    qaLab.add(this.rejectBinGroup);
 
     this.group.add(makeInteractable(qaLab, {
       id: "qa-lab-room",
@@ -904,38 +872,22 @@ export class ProcessingPackagingScene extends SceneModule {
 
   /**
    * Station 6: Finished Goods Palletizing & Forklift Dispatch (Far Right: x = 18.2, z = -2.2)
-   * Staged shrink-wrapped Euro pallet with finished approved goods, floor staging line, and forklift.
    */
   private buildFinishedGoodsStation(): void {
     const finishedGroup = new THREE.Group();
 
-    // Heavy-Duty Wooden Euro-Pallet
     const pallet = box(1.4, 0.14, 1.1, 0x8d6e63, { rough: 0.9 });
     pallet.position.set(17.2, 0.07, -2.2);
     finishedGroup.add(pallet);
 
-    // Green staging perimeter lane outline
     const outline = box(1.6, 0.015, 1.3, 0x2e7d32);
     outline.position.set(17.2, 0.01, -2.2);
     finishedGroup.add(outline);
 
-    // Stacked Finished Goods Master Cartons (16 boxes in neat tiers)
-    for (let r = 0; r < 2; r++) {
-      for (let c = 0; c < 2; c++) {
-        for (let tier = 0; tier < 2; tier++) {
-          const carton = box(0.6, 0.35, 0.45, 0x2e7d32);
-          carton.position.set(16.9 + c * 0.62, 0.32 + tier * 0.36, -2.45 + r * 0.48);
-          finishedGroup.add(carton);
+    // Dynamic finished goods cartons container
+    this.finishedPalletGroup = new THREE.Group();
+    finishedGroup.add(this.finishedPalletGroup);
 
-          // QA Approved Green Stamp Label
-          const stamp = box(0.2, 0.1, 0.01, 0xffffff);
-          stamp.position.set(16.9 + c * 0.62, 0.32 + tier * 0.36, -2.22 + r * 0.48);
-          finishedGroup.add(stamp);
-        }
-      }
-    }
-
-    // 2. Electric Warehouse Counterbalance Forklift
     const forklift = createForklift({ color: 0xf4a100 });
     forklift.position.set(20.0, 0, -2.2);
     forklift.rotation.y = -Math.PI / 2;
@@ -961,9 +913,8 @@ export class ProcessingPackagingScene extends SceneModule {
    * Builds animated industrial workers stationed along the linear flow.
    */
   private buildLineOperators(): void {
-    // 1. Washing Bay Operator (Inside Room 1 at Wash Flume)
     const workerWash = createWorkerFigure({
-      shirtColor: 0x0288d1, // Waterproof cyan blue
+      shirtColor: 0x0288d1,
       apronColor: 0xffffff,
       capColor: 0xf4c542,
     });
@@ -982,9 +933,8 @@ export class ProcessingPackagingScene extends SceneModule {
       sourceStatus: "PROPOSED",
     }));
 
-    // 2. Prep & Dicing Cleanroom Operator (Inside Room 2 at Dicer / Prep Table)
     const workerPrep = createWorkerFigure({
-      shirtColor: 0x00897b, // Cleanroom teal
+      shirtColor: 0x00897b,
       apronColor: 0xffffff,
       capColor: 0xffffff,
     });
@@ -1003,9 +953,8 @@ export class ProcessingPackagingScene extends SceneModule {
       sourceStatus: "PROPOSED",
     }));
 
-    // 3. Packaging Line Infeed Worker (At start of Conveyor Line)
     const workerInfeed = createWorkerFigure({
-      shirtColor: 0xe65100, // High-vis orange
+      shirtColor: 0xe65100,
       apronColor: 0x263238,
       capColor: 0xf4c542,
     });
@@ -1024,10 +973,9 @@ export class ProcessingPackagingScene extends SceneModule {
       sourceStatus: "PROPOSED",
     }));
 
-    // 4. Quality Assurance Inspector (Inside Room 3 at QA Testing Workbench)
     const workerQA = createWorkerFigure({
-      shirtColor: 0x1565c0, // Blue QA uniform
-      apronColor: 0xffffff, // White sterile lab apron
+      shirtColor: 0x1565c0,
+      apronColor: 0xffffff,
       capColor: 0xffffff,
     });
     workerQA.position.set(13.2, 0, -1.0);
@@ -1045,14 +993,13 @@ export class ProcessingPackagingScene extends SceneModule {
       sourceStatus: "PROPOSED",
     }));
 
-    // 5. Finished Goods & Palletizing Handler (Standing cleanly in front of Finished Pallet)
     const workerFinished = createWorkerFigure({
-      shirtColor: 0x2e7d32, // Forest green
+      shirtColor: 0x2e7d32,
       apronColor: 0x263238,
       capColor: 0x81c784,
     });
     workerFinished.position.set(17.2, 0, -0.9);
-    workerFinished.rotation.y = 0; // Facing the pallet and cartons
+    workerFinished.rotation.y = 0;
     this.workers.push(workerFinished);
     this.group.add(makeInteractable(workerFinished, {
       id: "worker-finished",
@@ -1068,25 +1015,556 @@ export class ProcessingPackagingScene extends SceneModule {
   }
 
   /**
-   * Reacts to scenario simulation updates: Adjusts conveyor belt velocity and bottleneck alerts.
+   * Helper to refresh text textures on an in-world canvas label.
+   */
+  private updateLabel(
+    labelMesh: THREE.Mesh,
+    text: string,
+    opts: Parameters<typeof makeTextTexture>[1] = {}
+  ): void {
+    if (!labelMesh) return;
+    const mat = labelMesh.material as THREE.MeshBasicMaterial;
+    const oldTex = mat.map;
+    mat.map = makeTextTexture(text, opts);
+    mat.needsUpdate = true;
+    oldTex?.dispose();
+  }
+
+  /**
+   * Dynamically renders physical crate stacks on the intake floor reflecting scenario queue backlogs.
+   */
+  private updateQueueVisuals(_queueLength: number, scenarioId: string): void {
+    while (this.queueGroup.children.length > 0) {
+      const child = this.queueGroup.children[0];
+      this.queueGroup.remove(child);
+      if (child instanceof THREE.Mesh) {
+        child.geometry?.dispose();
+        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+        else child.material?.dispose();
+      }
+    }
+
+    if (scenarioId === "improved") {
+      // 1 neat wooden pallet, 5 fresh green crates, clean spacing
+      const pallet = box(1.2, 0.14, 0.85, 0x8d6e63, { rough: 0.9 });
+      pallet.position.set(-16.0, 0.07, -1.8);
+      this.queueGroup.add(pallet);
+
+      const leanBorder = box(1.4, 0.02, 1.05, 0x2e7d32);
+      leanBorder.position.set(-16.0, 0.01, -1.8);
+      this.queueGroup.add(leanBorder);
+
+      const crateCoords = [
+        [-16.3, 0.27, -2.05],
+        [-15.7, 0.27, -2.05],
+        [-16.3, 0.27, -1.55],
+        [-15.7, 0.27, -1.55],
+        [-16.0, 0.54, -1.8],
+      ];
+      for (const [cx, cy, cz] of crateCoords) {
+        const crate = box(0.52, 0.26, 0.38, 0x2e7d32);
+        crate.position.set(cx, cy, cz);
+        this.queueGroup.add(crate);
+
+        const produce = box(0.46, 0.08, 0.32, 0x43a047);
+        produce.position.set(cx, cy + 0.1, cz);
+        this.queueGroup.add(produce);
+      }
+
+      this.updateLabel(
+        this.queueStatusLabel,
+        `LEAN JIT QUEUE: 5 CRATES\nTACT TIME 100% · ZERO SPOILAGE`,
+        { bg: "#1B5E20", fontSize: 40, width: 640, height: 200 }
+      );
+    } else if (scenarioId === "demandIncrease") {
+      // 3 pallets, 34 crates stacked high and spreading
+      const pallets = [
+        [-16.8, -2.2],
+        [-15.4, -2.2],
+        [-14.0, -2.2],
+      ];
+      for (const [px, pz] of pallets) {
+        const p = box(1.2, 0.14, 0.85, 0x8d6e63, { rough: 0.9 });
+        p.position.set(px, 0.07, pz);
+        this.queueGroup.add(p);
+      }
+
+      let placed = 0;
+      for (let pIdx = 0; pIdx < 3 && placed < 34; pIdx++) {
+        const px = pallets[pIdx][0];
+        const pz = pallets[pIdx][1];
+        for (let tier = 0; tier < 3 && placed < 34; tier++) {
+          for (let r = 0; r < 2 && placed < 34; r++) {
+            for (let c = 0; c < 2 && placed < 34; c++) {
+              const color = placed % 3 === 0 ? 0xd84315 : (placed % 2 === 0 ? 0xf57c00 : 0x2e7d32);
+              const crate = box(0.52, 0.25, 0.38, color);
+              crate.position.set(px - 0.28 + c * 0.56, 0.26 + tier * 0.26, pz - 0.2 + r * 0.4);
+              this.queueGroup.add(crate);
+
+              const prodColor = color === 0x2e7d32 ? 0x43a047 : 0xe65100;
+              const produce = box(0.45, 0.07, 0.32, prodColor);
+              produce.position.set(px - 0.28 + c * 0.56, 0.35 + tier * 0.26, pz - 0.2 + r * 0.4);
+              this.queueGroup.add(produce);
+              placed++;
+            }
+          }
+        }
+      }
+      while (placed < 34) {
+        const crate = box(0.52, 0.25, 0.38, 0xd84315);
+        crate.position.set(-15.4 + (placed % 2) * 0.56, 1.04, -2.2);
+        this.queueGroup.add(crate);
+        placed++;
+      }
+
+      for (const cx of [-16.9, -13.8]) {
+        const cone = box(0.2, 0.45, 0.2, 0xff6d00);
+        cone.position.set(cx, 0.22, -1.2);
+        this.queueGroup.add(cone);
+      }
+
+      this.updateLabel(
+        this.queueStatusLabel,
+        `SURGE BOTTLENECK: 34 CRATES\nDEMAND SPIKE · ARRIVAL > CAPACITY`,
+        { bg: "#D84315", fontSize: 40, width: 640, height: 200 }
+      );
+    } else if (scenarioId === "coldCapacityDecrease") {
+      // 3 pallets + floor overflow, 41 crates stacked chaotically with spoiled brown crates
+      const pallets = [
+        [-17.0, -2.2],
+        [-15.5, -2.2],
+        [-14.0, -2.2],
+      ];
+      for (const [px, pz] of pallets) {
+        const p = box(1.2, 0.14, 0.85, 0x8d6e63, { rough: 0.9 });
+        p.position.set(px, 0.07, pz);
+        this.queueGroup.add(p);
+      }
+
+      let placed = 0;
+      for (let pIdx = 0; pIdx < 3 && placed < 41; pIdx++) {
+        const px = pallets[pIdx][0];
+        const pz = pallets[pIdx][1];
+        for (let tier = 0; tier < 3 && placed < 41; tier++) {
+          for (let r = 0; r < 2 && placed < 41; r++) {
+            for (let c = 0; c < 2 && placed < 41; c++) {
+              const isSpoiled = placed % 2 === 0;
+              const color = isSpoiled ? 0x5d4037 : 0xc62828;
+              const crate = box(0.52, 0.25, 0.38, color);
+              crate.position.set(px - 0.28 + c * 0.56, 0.26 + tier * 0.26, pz - 0.2 + r * 0.4);
+              this.queueGroup.add(crate);
+
+              const prodColor = isSpoiled ? 0x3e2723 : 0xb71c1c;
+              const produce = box(0.45, 0.07, 0.32, prodColor);
+              produce.position.set(px - 0.28 + c * 0.56, 0.35 + tier * 0.26, pz - 0.2 + r * 0.4);
+              this.queueGroup.add(produce);
+              placed++;
+            }
+          }
+        }
+      }
+      while (placed < 41) {
+        const crate = box(0.52, 0.25, 0.38, 0x4e342e);
+        crate.position.set(-16.0 + (placed - 36) * 0.55, 1.04, -2.1);
+        this.queueGroup.add(crate);
+        placed++;
+      }
+
+      for (const hx of [-17.2, -13.5]) {
+        const hazard = box(0.22, 0.5, 0.22, 0xb71c1c, { emissive: 0xb71c1c });
+        hazard.position.set(hx, 0.25, -1.2);
+        this.queueGroup.add(hazard);
+      }
+
+      this.updateLabel(
+        this.queueStatusLabel,
+        `CRITICAL BACKLOG: 41 CRATES\nCOLD STORE DOWN · SPOILAGE SPIKE`,
+        { bg: "#B71C1C", fontSize: 40, width: 640, height: 200 }
+      );
+    } else {
+      // Baseline: 2 pallets, 22 crates
+      const pallets = [
+        [-16.5, -2.2],
+        [-15.0, -2.2],
+      ];
+      for (const [px, pz] of pallets) {
+        const p = box(1.2, 0.14, 0.85, 0x8d6e63, { rough: 0.9 });
+        p.position.set(px, 0.07, pz);
+        this.queueGroup.add(p);
+      }
+
+      let placed = 0;
+      for (let pIdx = 0; pIdx < 2 && placed < 22; pIdx++) {
+        const px = pallets[pIdx][0];
+        const pz = pallets[pIdx][1];
+        for (let tier = 0; tier < 3 && placed < 22; tier++) {
+          for (let r = 0; r < 2 && placed < 22; r++) {
+            for (let c = 0; c < 2 && placed < 22; c++) {
+              if (tier === 2 && (r === 1 || c === 1) && placed >= 22) break;
+              const color = placed % 2 === 0 ? 0x2e7d32 : 0xd32f2f;
+              const crate = box(0.52, 0.25, 0.38, color);
+              crate.position.set(px - 0.28 + c * 0.56, 0.26 + tier * 0.26, pz - 0.2 + r * 0.4);
+              this.queueGroup.add(crate);
+
+              const prodColor = color === 0x2e7d32 ? 0x43a047 : 0xe53935;
+              const produce = box(0.45, 0.07, 0.32, prodColor);
+              produce.position.set(px - 0.28 + c * 0.56, 0.35 + tier * 0.26, pz - 0.2 + r * 0.4);
+              this.queueGroup.add(produce);
+              placed++;
+            }
+          }
+        }
+      }
+      while (placed < 22) {
+        const crate = box(0.52, 0.25, 0.38, 0xd32f2f);
+        crate.position.set(-15.8 + (placed - 20) * 0.56, 0.78, -2.2);
+        this.queueGroup.add(crate);
+        placed++;
+      }
+
+      this.updateLabel(
+        this.queueStatusLabel,
+        `INTAKE QUEUE: 22 CRATES\nDELAY: ~1.9h · TEMP EXCURSION RISING`,
+        { bg: "#E65100", fontSize: 40, width: 640, height: 200 }
+      );
+    }
+  }
+
+  /**
+   * Dynamically renders finished master cartons according to scenario quantityGood (62 vs 58 vs 48 vs 88).
+   */
+  private updateFinishedGoodsVisuals(scenarioId: string): void {
+    while (this.finishedPalletGroup.children.length > 0) {
+      const child = this.finishedPalletGroup.children[0];
+      this.finishedPalletGroup.remove(child);
+      if (child instanceof THREE.Mesh) {
+        child.geometry?.dispose();
+        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+        else child.material?.dispose();
+      }
+    }
+
+    if (scenarioId === "improved") {
+      // 24 master cartons (3 full tiers) + transparent protective stretch film + golden QA seal
+      for (let tier = 0; tier < 3; tier++) {
+        for (let r = 0; r < 2; r++) {
+          for (let c = 0; c < 2; c++) {
+            const carton = box(0.6, 0.34, 0.45, 0x2e7d32);
+            carton.position.set(16.9 + c * 0.62, 0.31 + tier * 0.35, -2.45 + r * 0.48);
+            this.finishedPalletGroup.add(carton);
+
+            const stamp = box(0.22, 0.12, 0.01, 0xffd700);
+            stamp.position.set(16.9 + c * 0.62, 0.31 + tier * 0.35, -2.22 + r * 0.48);
+            this.finishedPalletGroup.add(stamp);
+          }
+        }
+      }
+
+      const wrapMat = new THREE.MeshStandardMaterial({
+        color: 0xbbdefb,
+        transparent: true,
+        opacity: 0.38,
+        roughness: 0.15,
+      });
+      const shrinkWrap = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.15, 1.05), wrapMat);
+      shrinkWrap.position.set(17.2, 0.72, -2.2);
+      this.finishedPalletGroup.add(shrinkWrap);
+
+      const banner = label("MAXIMUM SHIPMENT: 88 CRATES\n+42% GAIN · QA RELEASE APPROVED", 2.2, {
+        fontSize: 36,
+        width: 540,
+        height: 180,
+        bg: "#1B5E20",
+      });
+      banner.position.set(17.2, 1.65, -2.2);
+      this.finishedPalletGroup.add(banner);
+    } else if (scenarioId === "coldCapacityDecrease") {
+      // 8 cartons (sparse 1 tier)
+      for (let r = 0; r < 2; r++) {
+        for (let c = 0; c < 2; c++) {
+          const carton = box(0.6, 0.34, 0.45, 0x8d6e63);
+          carton.position.set(16.9 + c * 0.62, 0.31, -2.45 + r * 0.48);
+          this.finishedPalletGroup.add(carton);
+        }
+      }
+
+      const banner = label("RESTRICTED DISPATCH: 48 CRATES\n-23% LOSS · BOTTLENECKED", 2.2, {
+        fontSize: 36,
+        width: 520,
+        height: 180,
+        bg: "#B71C1C",
+      });
+      banner.position.set(17.2, 1.05, -2.2);
+      this.finishedPalletGroup.add(banner);
+    } else if (scenarioId === "demandIncrease") {
+      // 12 cartons
+      for (let tier = 0; tier < 2; tier++) {
+        for (let r = 0; r < 2; r++) {
+          for (let c = 0; c < 2; c++) {
+            if (tier === 1 && r === 1) continue;
+            const carton = box(0.6, 0.34, 0.45, 0xd84315);
+            carton.position.set(16.9 + c * 0.62, 0.31 + tier * 0.35, -2.45 + r * 0.48);
+            this.finishedPalletGroup.add(carton);
+          }
+        }
+      }
+
+      const banner = label("BELOW TARGET: 58 CRATES\nDEMAND 110 · DEFICIT -52", 2.2, {
+        fontSize: 36,
+        width: 520,
+        height: 180,
+        bg: "#E65100",
+      });
+      banner.position.set(17.2, 1.25, -2.2);
+      this.finishedPalletGroup.add(banner);
+    } else {
+      // Baseline: 16 cartons (2 full tiers)
+      for (let tier = 0; tier < 2; tier++) {
+        for (let r = 0; r < 2; r++) {
+          for (let c = 0; c < 2; c++) {
+            const carton = box(0.6, 0.34, 0.45, 0x2e7d32);
+            carton.position.set(16.9 + c * 0.62, 0.31 + tier * 0.35, -2.45 + r * 0.48);
+            this.finishedPalletGroup.add(carton);
+
+            const stamp = box(0.2, 0.1, 0.01, 0xffffff);
+            stamp.position.set(16.9 + c * 0.62, 0.31 + tier * 0.35, -2.22 + r * 0.48);
+            this.finishedPalletGroup.add(stamp);
+          }
+        }
+      }
+
+      const banner = label("BASELINE OUTPUT: 62 CRATES\nYIELD: 62% · LOSS: 38 CRATES", 2.2, {
+        fontSize: 36,
+        width: 520,
+        height: 180,
+        bg: "#0D47A1",
+      });
+      banner.position.set(17.2, 1.35, -2.2);
+      this.finishedPalletGroup.add(banner);
+    }
+  }
+
+  /**
+   * Dynamically renders defect culls inside and spilling from the QA reject bin.
+   */
+  private updateRejectBinVisuals(scenarioId: string): void {
+    while (this.rejectBinGroup.children.length > 0) {
+      const child = this.rejectBinGroup.children[0];
+      this.rejectBinGroup.remove(child);
+      if (child instanceof THREE.Mesh) {
+        child.geometry?.dispose();
+        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+        else child.material?.dispose();
+      }
+    }
+
+    if (scenarioId === "improved") {
+      const cull = box(0.18, 0.1, 0.18, 0x78909c);
+      cull.position.set(11.2, 0.45, -0.6);
+      this.rejectBinGroup.add(cull);
+    } else if (scenarioId === "coldCapacityDecrease") {
+      for (let i = 0; i < 8; i++) {
+        const cull = box(0.25, 0.15, 0.22, 0x5d4037);
+        cull.position.set(11.1 + (i % 3) * 0.12, 0.85 + Math.floor(i / 3) * 0.14, -0.6 + (i % 2) * 0.12);
+        this.rejectBinGroup.add(cull);
+      }
+      for (const [sx, sz] of [[11.7, -0.6], [10.7, -0.5], [11.2, -0.1]]) {
+        const spill = box(0.28, 0.12, 0.25, 0xb71c1c);
+        spill.position.set(sx, 0.06, sz);
+        this.rejectBinGroup.add(spill);
+      }
+    } else if (scenarioId === "demandIncrease") {
+      for (let i = 0; i < 6; i++) {
+        const cull = box(0.24, 0.14, 0.22, 0xb71c1c);
+        cull.position.set(11.1 + (i % 2) * 0.16, 0.75 + Math.floor(i / 2) * 0.12, -0.6);
+        this.rejectBinGroup.add(cull);
+      }
+    } else {
+      for (let i = 0; i < 4; i++) {
+        const cull = box(0.22, 0.12, 0.2, 0xb71c1c);
+        cull.position.set(11.1 + (i % 2) * 0.15, 0.65 + Math.floor(i / 2) * 0.12, -0.6);
+        this.rejectBinGroup.add(cull);
+      }
+    }
+  }
+
+  /**
+   * Reacts to scenario simulation updates: Transforms 3D crate queues, line speeds, and cleanroom machine displays.
    */
   protected onSnapshot(snap: EngineSnapshot): void {
-    const { state } = snap;
+    const { state, scenarioId } = snap;
+    this.currentScenarioId = scenarioId;
 
-    // Conveyor speed slows when queue is high (bottleneck)
-    this.beltSpeed = state.queueLength > 20 ? 0.25 : 0.75;
+    // 1. Dynamic Physical Crate Queue on Intake Floor
+    this.updateQueueVisuals(state.queueLength, scenarioId);
 
-    const isBottleneck = state.queueLength > 20;
-    const text = isBottleneck
-      ? `BOTTLENECK WARNING\nQUEUE: ${state.queueLength} · FLOW REDUCED`
-      : `LINE FLOW NOMINAL\nQUEUE: ${state.queueLength} · VELOCITY 100%`;
-    const bg = isBottleneck ? "#b23a2b" : "#2e7d32";
+    // 2. Dynamic Finished Goods Master Carton Pallet
+    this.updateFinishedGoodsVisuals(scenarioId);
 
-    const mat = this.bottleneckLabel.material as THREE.MeshBasicMaterial;
-    const old = mat.map;
-    mat.map = makeTextTexture(text, { bg, fontSize: 44, width: 560, height: 200 });
-    mat.needsUpdate = true;
-    old?.dispose();
+    // 3. Dynamic Defect Bin Cull Items
+    this.updateRejectBinVisuals(scenarioId);
+
+    // 4. Room 1: Washing Bay Water Monitor & Flume Appearance
+    if (scenarioId === "improved") {
+      this.updateLabel(
+        this.waterMonitor,
+        `CHILLED FLUME: 3.2°C OPTIMAL\nPAA: 150 PPM · pH: 6.8\nUV + OZONATION: ACTIVE`,
+        { bg: "#1B5E20", fontSize: 34, width: 440, height: 220 }
+      );
+      this.flumeWaterMat.color.setHex(0x00e5ff);
+      this.flumeWaterMat.opacity = 0.88;
+    } else if (scenarioId === "coldCapacityDecrease") {
+      this.updateLabel(
+        this.waterMonitor,
+        `CHILLER FAULT: 14.2°C\nPAA: 40 PPM CRITICAL\nCONTAMINATION RISK HIGH`,
+        { bg: "#B71C1C", fontSize: 34, width: 440, height: 220 }
+      );
+      this.flumeWaterMat.color.setHex(0x8d6e63);
+      this.flumeWaterMat.opacity = 0.65;
+    } else if (scenarioId === "demandIncrease") {
+      this.updateLabel(
+        this.waterMonitor,
+        `WASH WATER: 7.8°C (RISING)\nPAA: 55 PPM (DILUTED)\nFLOW: 17.5 C/H OVERLOAD`,
+        { bg: "#E65100", fontSize: 34, width: 440, height: 220 }
+      );
+      this.flumeWaterMat.color.setHex(0x26c6da);
+      this.flumeWaterMat.opacity = 0.72;
+    } else {
+      this.updateLabel(
+        this.waterMonitor,
+        `WASH WATER: 5.2°C\nPAA: 65 PPM (SUB-OPTIMAL)\nEXCURSION: +210°C·h`,
+        { bg: "#0D47A1", fontSize: 34, width: 440, height: 220 }
+      );
+      this.flumeWaterMat.color.setHex(0x00bcd4);
+      this.flumeWaterMat.opacity = 0.72;
+    }
+
+    // 5. Room 2: Dicer HMI Screen & Recipe Terminal
+    if (scenarioId === "improved") {
+      this.updateLabel(
+        this.dicerHmi,
+        `DUAL DICERS: SYNCHRONIZED\nCAPACITY: 18.0 C/H (LEAN)\nSTATUS: ZERO BOTTLENECK`,
+        { bg: "#1B5E20", fontSize: 34, width: 400, height: 220 }
+      );
+      this.updateLabel(
+        this.recipeScreen,
+        `LEAN U-FLOW FORMULATION\nYIELD: 88.0% (+26% RECOVERY)\nNET SAVINGS: ₹24,960`,
+        { bg: "#1B5E20", fontSize: 34, width: 440, height: 220 }
+      );
+      this.dicerAuxGroup.visible = true;
+    } else if (scenarioId === "coldCapacityDecrease") {
+      this.updateLabel(
+        this.dicerHmi,
+        `DICER HMI: THROTTLED\nRATE: 9.8 C/H (STALLED)\nDOWNSTREAM FULL`,
+        { bg: "#B71C1C", fontSize: 34, width: 400, height: 220 }
+      );
+      this.updateLabel(
+        this.recipeScreen,
+        `HOLD / RETENTION STATE\nYIELD: 48.0% (SPOILED: 40C)\nNET LOSS: ₹48,000`,
+        { bg: "#B71C1C", fontSize: 34, width: 440, height: 220 }
+      );
+      this.dicerAuxGroup.visible = false;
+    } else if (scenarioId === "demandIncrease") {
+      this.updateLabel(
+        this.dicerHmi,
+        `DICER: SEVERE BOTTLENECK\nRATE: 11.5 / 17.5 INFLOW\nSURGE CONGESTION`,
+        { bg: "#D84315", fontSize: 34, width: 400, height: 220 }
+      );
+      this.updateLabel(
+        this.recipeScreen,
+        `HIGH-SPEED RUN\nYIELD: 58.0% (LOSS RISING)\nNET LOSS: ₹37,200`,
+        { bg: "#E65100", fontSize: 34, width: 440, height: 220 }
+      );
+      this.dicerAuxGroup.visible = false;
+    } else {
+      this.updateLabel(
+        this.dicerHmi,
+        `DICER HMI: BOTTLENECK\nRATE: 11.5 C/H (SINGLE)\nQUEUE DELAY: 1.9h`,
+        { bg: "#F57F17", fontSize: 34, width: 400, height: 220 }
+      );
+      this.updateLabel(
+        this.recipeScreen,
+        `CONVENTIONAL PREP\nYIELD EFFICIENCY: 62.0%\nNET LOSS: ₹33,600`,
+        { bg: "#102A43", fontSize: 34, width: 440, height: 220 }
+      );
+      this.dicerAuxGroup.visible = false;
+    }
+
+    // 6. Packaging Conveyor Velocity & Bottleneck Gantry Sign
+    if (scenarioId === "improved") {
+      this.beltSpeed = 1.1;
+      this.updateLabel(
+        this.bottleneckLabel,
+        `CONTINUOUS LEAN FLOW\nQUEUE: 5 CRATES · ZERO DWELL TIME`,
+        { bg: "#2E7D32", fontSize: 44, width: 560, height: 200 }
+      );
+    } else if (scenarioId === "demandIncrease") {
+      this.beltSpeed = 0.35;
+      this.updateLabel(
+        this.bottleneckLabel,
+        `SEVERE CAPACITY OVERLOAD\nQUEUE: 34 CRATES · SPEED: 35%`,
+        { bg: "#D84315", fontSize: 44, width: 560, height: 200 }
+      );
+    } else if (scenarioId === "coldCapacityDecrease") {
+      this.beltSpeed = 0.22;
+      this.updateLabel(
+        this.bottleneckLabel,
+        `LINE STALLED / BLOCKED\nQUEUE: 41 CRATES · SPEED: 22%`,
+        { bg: "#B71C1C", fontSize: 44, width: 560, height: 200 }
+      );
+    } else {
+      this.beltSpeed = 0.6;
+      this.updateLabel(
+        this.bottleneckLabel,
+        `BOTTLENECK WARNING\nQUEUE: 22 CRATES · SPEED: 60%`,
+        { bg: "#F57F17", fontSize: 44, width: 560, height: 200 }
+      );
+    }
+
+    // 7. Room 3: QA Tablet Display
+    if (scenarioId === "improved") {
+      this.updateLabel(
+        this.qaTablet,
+        `QA RELEASED: 88 GOOD UNITS\nDEFECTS: 6 (2% MINIMAL)\nSTATUS: ISO 8 CERTIFIED`,
+        { bg: "#1B5E20", fontSize: 34, width: 420, height: 200 }
+      );
+    } else if (scenarioId === "coldCapacityDecrease") {
+      this.updateLabel(
+        this.qaTablet,
+        `CRITICAL QA FAIL\nGOOD: 48 / SPOILED: 40\nNET LOSS: ₹48,000`,
+        { bg: "#B71C1C", fontSize: 34, width: 420, height: 200 }
+      );
+    } else if (scenarioId === "demandIncrease") {
+      this.updateLabel(
+        this.qaTablet,
+        `QA ALERT: 31 SPOILED\nREJECTS: 11 CRATES\nQUEUE DWELL EXCEEDED`,
+        { bg: "#E65100", fontSize: 34, width: 420, height: 200 }
+      );
+    } else {
+      this.updateLabel(
+        this.qaTablet,
+        `QA RELEASE: 62 UNITS\nSPOILED: 28 CRATES\nREJECTS: 10 CRATES`,
+        { bg: "#0D47A1", fontSize: 34, width: 420, height: 200 }
+      );
+    }
+
+    // 8. Cleanroom Roof Beacon Status
+    for (const beacon of this.cleanroomStatusBeacons) {
+      const mat = beacon.material as THREE.MeshStandardMaterial;
+      if (scenarioId === "improved") {
+        mat.color.setHex(0x00e676);
+        mat.emissive.setHex(0x00e676);
+      } else if (scenarioId === "coldCapacityDecrease") {
+        mat.color.setHex(0xff1744);
+        mat.emissive.setHex(0xff1744);
+      } else if (scenarioId === "demandIncrease") {
+        mat.color.setHex(0xff9100);
+        mat.emissive.setHex(0xff9100);
+      } else {
+        mat.color.setHex(0x81d4fa);
+        mat.emissive.setHex(0x81d4fa);
+      }
+    }
   }
 
   /**
@@ -1100,6 +1578,15 @@ export class ProcessingPackagingScene extends SceneModule {
       item.position.x += this.beltSpeed * dt;
       if (item.position.x > 10.4) {
         item.position.x = 1.4;
+      }
+    }
+
+    // Pulse cleanroom beacons in warning/error scenarios
+    if (this.currentScenarioId === "coldCapacityDecrease" || this.currentScenarioId === "demandIncrease") {
+      const intensity = 0.4 + Math.sin(this.workerTime * 6.0) * 0.4;
+      for (const beacon of this.cleanroomStatusBeacons) {
+        const mat = beacon.material as THREE.MeshStandardMaterial;
+        mat.emissiveIntensity = Math.max(0.1, intensity);
       }
     }
 
@@ -1126,3 +1613,4 @@ function floorDecalAt(text: string, w: number, color: string, x: number, z: numb
   m.position.set(x, 0.03, z);
   return m;
 }
+
