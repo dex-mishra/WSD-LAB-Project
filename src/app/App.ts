@@ -38,7 +38,7 @@ export class App {
 
   private startPos = new THREE.Vector3(0, 0, 6);
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, onOpenMobileApp?: () => void) {
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: "high-performance",
@@ -102,6 +102,7 @@ export class App {
       onSelectScene: (k) => this.showScene(k),
       onReset: () => this.reset(),
       getActiveScene: () => this.activeKey,
+      onOpenMobileApp,
     });
     this.interaction.registerHud(this.hud);
 

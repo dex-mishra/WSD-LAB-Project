@@ -3,34 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Food Manufacturing VR Digital Twin</title>
+    <meta name="theme-color" content="#1c1917" />
+    <title>IndusAgri Ops — Plant Companion & 3D Twin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/ui/style.css" />
+    <link rel="stylesheet" href="/src/mobile/mobileStyles.css" />
   </head>
   <body>
+    <!-- 3D Digital Twin Three.js canvas container -->
     <div id="app"></div>
 
-    <!-- Boot / title overlay, shown before entering the scene -->
+    <!-- Mobile Application DOM root -->
+    <div id="mobile-root" style="display:none;"></div>
+
+    <!-- Boot / title overlay, shown before entering either mode -->
     <div id="boot-overlay">
-      <div class="boot-card">
-        <div class="boot-kicker">Industrial Engineering Case Study</div>
-        <h1>Small-Scale Food Manufacturing<br />Digital Twin</h1>
-        <p class="boot-sub">
-          Farm-to-consumer flow for a small food unit in India, focused on
-          inventory and cold-chain resilience.
-        </p>
-        <ul class="boot-facts">
-          <li><span class="tag tag-source">SOURCE</span> Post-harvest losses across 54 commodities valued at roughly &#8377;1.53 lakh crore/year (NABCONS/MoFPI, 2020&ndash;22).</li>
-          <li><span class="tag tag-source">SOURCE</span> Official baseline of 8,815 cold-storage facilities / 40.22 million MT capacity (as of 30 Jun 2025).</li>
-          <li><span class="tag tag-proposed">PROPOSED</span> All demo loss rates, prices, and shelf-life values are illustrative and editable.</li>
-        </ul>
-        <div class="boot-actions">
-          <button id="btn-start" class="btn btn-primary">Enter Digital Twin</button>
-          <span id="xr-status" class="xr-status">Checking VR support&hellip;</span>
+      <div class="boot-card boot-card-new">
+        <div class="boot-brand"><span class="boot-leaf">❧</span> IndusAgri Ops</div>
+        <h1>Know your plant<br />at a glance.</h1>
+        <p class="boot-sub">Raw → finished counts, machine alerts and voice AI — in a phone-first companion synced with the 3D twin.</p>
+        <div class="boot-stats">
+          <div class="boot-stat"><b>100→84</b><span>crates today</span></div>
+          <div class="boot-stat"><b>88%</b><span>yield</span></div>
+          <div class="boot-stat"><b>1</b><span>fault live</span></div>
         </div>
-        <p class="boot-note">
-          Works in any modern browser. A headset with WebXR is optional and
-          requires HTTPS or localhost.
-        </p>
+        <div class="boot-actions">
+          <button id="btn-start-mobile" class="btn btn-primary btn-big">Open plant app</button>
+          <button id="btn-start" class="btn btn-ghost">3D twin</button>
+        </div>
+        <div class="boot-xr"><span id="xr-status" class="xr-status">Checking VR support…</span></div>
       </div>
     </div>
 

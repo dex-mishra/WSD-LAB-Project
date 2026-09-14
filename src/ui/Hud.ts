@@ -8,6 +8,7 @@ interface HudOptions {
   onSelectScene: (key: SceneKey) => void;
   onReset: () => void;
   getActiveScene: () => SceneKey;
+  onOpenMobileApp?: () => void;
 }
 
 /**
@@ -52,6 +53,17 @@ export class Hud {
 
     const actWrap = document.createElement("div");
     actWrap.className = "hud-actions";
+
+    if (this.opts.onOpenMobileApp) {
+      const mobileBtn = document.createElement("button");
+      mobileBtn.className = "chip chip-action";
+      mobileBtn.style.background = "#2e7d32";
+      mobileBtn.style.color = "#ffffff";
+      mobileBtn.style.fontWeight = "bold";
+      mobileBtn.textContent = "📱 Mobile Companion UI";
+      mobileBtn.addEventListener("click", () => this.opts.onOpenMobileApp!());
+      actWrap.appendChild(mobileBtn);
+    }
 
     const reset = document.createElement("button");
     reset.className = "chip chip-action";

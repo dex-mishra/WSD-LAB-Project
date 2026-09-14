@@ -1,14 +1,22 @@
 import { App } from "./app/App";
+import { MobileApp } from "./mobile/MobileApp";
 
 /**
- * Entry point. Detects WebXR support for the boot overlay message, wires the
- * "Enter Digital Twin" button, then starts the render loop. The app is fully
- * usable in a normal browser without WebXR (desktop fallback controls).
+ * Main application entry point.
+ * Provides dual-mode execution:
+ * 1. Mobile Operations & Twin Companion App UI (Role-based access, machine telemetry, process tests, AI audio)
+ * 2. Interactive 3D / WebXR Digital Twin (Three.js 4-environment factory model)
  */
 
 const overlay = document.getElementById("boot-overlay")!;
-const startBtn = document.getElementById("btn-start") as HTMLButtonElement;
+const startVrBtn = document.getElementById("btn-start") as HTMLButtonElement | null;
+const startMobileBtn = document.getElementById("btn-start-mobile") as HTMLButtonElement | null;
 const xrStatus = document.getElementById("xr-status")!;
+const mobileRoot = document.getElementById("mobile-root")!;
+const appContainer = document.getElementById("app")!;
+
+let app: App | null = null;
+let mobileApp: MobileApp | null = null;
 
 async function detectXR(): Promise<void> {
   const nav = navigator as Navigator & {
@@ -34,20 +42,34 @@ async function detectXR(): Promise<void> {
   }
 }
 
-let app: App | null = null;
-
-function boot(): void {
-  const container = document.getElementById("app")!;
-  app = new App(container);
-  (window as any).__APP__ = app;
-  app.start();
+function launchMobileApp(): void {
+  mobileRoot.style.display = "block";
+  if (!mobileApp) {
+    mobileApp = new MobileApp({
+      container: mobileRoot,
+      onOpenVRDigitalTwin: () => launch3dTwin(),
+    });
+    (window as any).__MOBILE_APP__ = mobileApp;
+  }
   overlay.classList.add("hidden");
 }
 
-startBtn.addEventListener("click", boot);
+function launch3dTwin(): void {
+  mobileRoot.style.display = "none";
+  if (!app) {
+    app = new App(appContainer, () => launchMobileApp());
+    (window as any).__APP__ = app;
+    app.start();
+  }
+  overlay.classList.add("hidden");
+}
+
+startMobileBtn?.addEventListener("click", launchMobileApp);
+startVrBtn?.addEventListener("click", launch3dTwin);
+
 void detectXR();
 
 // Surface uncaught errors instead of failing silently.
 window.addEventListener("error", (e) => {
-  console.error("[digital-twin] runtime error:", e.error ?? e.message);
+  console.error("[manufacturing-suite] runtime error:", e.error ?? e.message);
 });
