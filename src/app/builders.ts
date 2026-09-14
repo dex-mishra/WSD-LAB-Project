@@ -1220,6 +1220,195 @@ export function createRefrigeratedTruck(opts: { cabColor?: number; cargoColor?: 
   return group;
 }
 
+/**
+ * Creates a compact Light Commercial Vehicle (LCV) / Delivery Box Van
+ * with aerodynamic cab, wind deflector fairing, insulated FRP box body,
+ * rear double-doors with lock bars, side underrun rails, and highway tires.
+ */
+export function createLightCommercialVan(opts: {
+  cabColor?: number;
+  cargoColor?: number;
+} = {}): THREE.Group {
+  const group = new THREE.Group();
+  const cabCol = opts.cabColor ?? 0xf5f7fa; // Crisp commercial white
+  const cargoCol = opts.cargoColor ?? 0xffffff;
+
+  // 1. Lower Chassis & Underrun Side Rails (Dark Industrial Steel)
+  const chassis = box(1.5, 0.18, 4.6, 0x222831);
+  chassis.position.set(0, 0.38, 0);
+  group.add(chassis);
+
+  // Side underrun safety bars (silver rails under the cargo box)
+  for (const sx of [-0.85, 0.85]) {
+    const rail1 = box(0.04, 0.04, 2.2, 0x90a4ae, { metal: 0.8 });
+    rail1.position.set(sx, 0.32, -0.4);
+    group.add(rail1);
+
+    const rail2 = box(0.04, 0.04, 2.2, 0x90a4ae, { metal: 0.8 });
+    rail2.position.set(sx, 0.22, -0.4);
+    group.add(rail2);
+  }
+
+  // 2. Front Aerodynamic Van Cab
+  const cabGroup = new THREE.Group();
+
+  // Lower cab base & engine compartment
+  const cabBase = box(1.7, 0.85, 1.4, cabCol, { rough: 0.4 });
+  cabBase.position.set(0, 0.85, 1.6);
+  cabGroup.add(cabBase);
+
+  // Slanted nose hood
+  const nose = box(1.68, 0.45, 0.6, cabCol, { rough: 0.4 });
+  nose.position.set(0, 0.72, 2.45);
+  cabGroup.add(nose);
+
+  // Front dark grille & bumper
+  const bumper = box(1.75, 0.3, 0.18, 0x37474f, { rough: 0.7 });
+  bumper.position.set(0, 0.42, 2.76);
+  cabGroup.add(bumper);
+
+  const grille = box(1.2, 0.25, 0.04, 0x111111);
+  grille.position.set(0, 0.72, 2.76);
+  cabGroup.add(grille);
+
+  // Headlight clusters (Left & Right)
+  for (const hx of [-0.68, 0.68]) {
+    const light = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.24, 0.16),
+      new THREE.MeshStandardMaterial({
+        color: 0xfffae8,
+        emissive: 0xfffae8,
+        emissiveIntensity: 0.9,
+      })
+    );
+    light.position.set(hx, 0.74, 2.76);
+    cabGroup.add(light);
+  }
+
+  // Upper Passenger Cabin with Slanted Windshield
+  const cabinUpper = box(1.66, 0.75, 1.1, cabCol, { rough: 0.4 });
+  cabinUpper.position.set(0, 1.6, 1.5);
+  cabGroup.add(cabinUpper);
+
+  // Large Raked Windshield (Tinted glass)
+  const windshield = box(1.5, 0.68, 0.05, 0x112233, { rough: 0.1, metal: 0.85 });
+  windshield.position.set(0, 1.62, 2.05);
+  windshield.rotation.x = 0.25;
+  cabGroup.add(windshield);
+
+  // Side driver & passenger windows
+  for (const wx of [-0.84, 0.84]) {
+    const sideGlass = box(0.04, 0.45, 0.7, 0x112233, { rough: 0.1, metal: 0.85 });
+    sideGlass.position.set(wx, 1.62, 1.5);
+    cabGroup.add(sideGlass);
+
+    // Side rear-view mirror
+    const mirrorArm = box(0.18, 0.03, 0.03, 0x222222);
+    mirrorArm.position.set(wx > 0 ? wx + 0.09 : wx - 0.09, 1.55, 1.85);
+    cabGroup.add(mirrorArm);
+
+    const mirrorHead = box(0.06, 0.24, 0.12, 0x1a1a1a);
+    mirrorHead.position.set(wx > 0 ? wx + 0.18 : wx - 0.18, 1.55, 1.85);
+    cabGroup.add(mirrorHead);
+  }
+
+  // Aerodynamic Cab Roof Wind Deflector (Fairing matching reference image)
+  const deflector = new THREE.Mesh(
+    new THREE.ConeGeometry(0.85, 0.6, 4),
+    new THREE.MeshStandardMaterial({ color: cabCol, roughness: 0.4 })
+  );
+  deflector.rotation.y = Math.PI / 4;
+  deflector.rotation.x = -0.45;
+  deflector.scale.set(1.1, 0.7, 1.3);
+  deflector.position.set(0, 2.15, 1.45);
+  cabGroup.add(deflector);
+
+  group.add(cabGroup);
+
+  // 3. Insulated Cargo Box Body (White FRP panel body with silver corner trim)
+  const boxWidth = 1.95;
+  const boxHeight = 1.95;
+  const boxLength = 3.2;
+  const cargoBox = box(boxWidth, boxHeight, boxLength, cargoCol, { rough: 0.25 });
+  cargoBox.position.set(0, 1.55, -0.65);
+  group.add(cargoBox);
+
+  // Corner protective anodized aluminum trim extrusions
+  for (const [cx, cy, cz, cw, ch, cd] of [
+    [0, 2.53, -0.65, boxWidth + 0.04, 0.06, boxLength + 0.04],
+    [-(boxWidth / 2 + 0.02), 1.55, -(boxLength / 2 + 0.02), 0.05, boxHeight, 0.05],
+    [(boxWidth / 2 + 0.02), 1.55, -(boxLength / 2 + 0.02), 0.05, boxHeight, 0.05],
+    [-(boxWidth / 2 + 0.02), 1.55, (boxLength / 2 - 0.02), 0.05, boxHeight, 0.05],
+    [(boxWidth / 2 + 0.02), 1.55, (boxLength / 2 - 0.02), 0.05, boxHeight, 0.05],
+  ]) {
+    const trim = box(cw, ch, cd, 0xb0bec5, { metal: 0.7, rough: 0.3 });
+    trim.position.set(cx, cy, cz);
+    group.add(trim);
+  }
+
+  // Rear Double Swing-Doors with stainless lock-rods & hinges (matching image)
+  const doorPanelL = box(boxWidth / 2 - 0.04, boxHeight - 0.1, 0.03, 0xf0f4f8, { rough: 0.4 });
+  doorPanelL.position.set(-(boxWidth / 4 - 0.01), 1.55, -2.27);
+  group.add(doorPanelL);
+
+  const doorPanelR = box(boxWidth / 2 - 0.04, boxHeight - 0.1, 0.03, 0xf0f4f8, { rough: 0.4 });
+  doorPanelR.position.set((boxWidth / 4 - 0.01), 1.55, -2.27);
+  group.add(doorPanelR);
+
+  // Stainless vertical locking cam bars on rear doors
+  for (const lx of [-0.35, 0.35]) {
+    const rod = box(0.03, boxHeight - 0.2, 0.04, 0x8a99a8, { metal: 0.85 });
+    rod.position.set(lx, 1.55, -2.29);
+    group.add(rod);
+
+    const handle = box(0.08, 0.04, 0.06, 0x37474f);
+    handle.position.set(lx, 1.35, -2.31);
+    group.add(handle);
+  }
+
+  // Rear step bumper & Taillights
+  const rearBumper = box(1.9, 0.18, 0.18, 0xd0dfea, { metal: 0.7 });
+  rearBumper.position.set(0, 0.48, -2.32);
+  group.add(rearBumper);
+
+  for (const tx of [-0.75, 0.75]) {
+    const tailLight = box(0.24, 0.1, 0.02, 0xd32f2f, { emissive: 0xd32f2f });
+    tailLight.position.set(tx, 0.48, -2.42);
+    group.add(tailLight);
+  }
+
+  // 4. Wheels (4 Commercial Highway Van Tires: 2 front, 2 rear)
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x181a1d, roughness: 0.9 });
+  const wheelGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.22, 16);
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xd0dfea, metalness: 0.75, roughness: 0.25 });
+  const rimGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.23, 12);
+
+  const wheelPositions = [
+    [0.85, 0.36, 1.6],
+    [-0.85, 0.36, 1.6],
+    [0.85, 0.36, -1.35],
+    [-0.85, 0.36, -1.35],
+  ];
+
+  for (const [wx, wy, wz] of wheelPositions) {
+    const tire = new THREE.Mesh(wheelGeo, wheelMat);
+    tire.rotation.z = Math.PI / 2;
+    tire.position.set(wx, wy, wz);
+    tire.castShadow = true;
+
+    const rim = new THREE.Mesh(rimGeo, rimMat);
+    tire.add(rim);
+    group.add(tire);
+
+    // Black curved mudguard above tire
+    const fender = box(0.26, 0.04, 0.8, 0x263238);
+    fender.position.set(wx > 0 ? wx - 0.02 : wx + 0.02, wy + 0.38, wz);
+    group.add(fender);
+  }
+
+  return group;
+}
+
 export interface AirArrowOptions {
   step: string;
   purpose: string;
